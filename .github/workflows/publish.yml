@@ -35,3 +35,6 @@ jobs:
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # The n8n-node prerelease guard (prepublishOnly) blocks npm publish
+          # unless RELEASE_MODE is set, to prevent accidental local publishes.
+          RELEASE_MODE: 'true'

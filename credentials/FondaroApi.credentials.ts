@@ -2,6 +2,7 @@ import type {
 	IAuthenticateGeneric,
 	ICredentialTestRequest,
 	ICredentialType,
+	Icon,
 	INodeProperties,
 } from 'n8n-workflow';
 
@@ -9,6 +10,8 @@ export class FondaroApi implements ICredentialType {
 	name = 'fondaroApi';
 
 	displayName = 'Fondaro API';
+
+	icon: Icon = 'file:fondaro.svg';
 
 	documentationUrl = 'https://github.com/fondaro/n8n-nodes-fondaro?tab=readme-ov-file#credentials';
 

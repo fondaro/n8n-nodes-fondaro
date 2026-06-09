@@ -32,6 +32,9 @@ async function fetchNewLeads(this: IPollFunctions, since?: string): Promise<IDat
 	}
 }
 
+// Polling trigger nodes cannot run as AI agent tools, and usableAsTool only
+// accepts true, so the property is intentionally omitted here.
+// eslint-disable-next-line @n8n/community-nodes/node-usable-as-tool
 export class FondaroPollingTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Fondaro Polling Trigger',
@@ -39,6 +42,7 @@ export class FondaroPollingTrigger implements INodeType {
 		icon: 'file:fondaro.svg',
 		group: ['trigger'],
 		version: 1,
+		subtitle: '={{$parameter["event"]}}',
 		description:
 			'Starts the workflow by polling Fondaro for new leads. Use this on self-hosted n8n instances that cannot receive webhooks, for example behind a firewall.',
 		defaults: {

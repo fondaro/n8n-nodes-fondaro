@@ -1,4 +1,4 @@
-import type { ICredentialType, INodeProperties } from 'n8n-workflow';
+import type { ICredentialType, Icon, INodeProperties } from 'n8n-workflow';
 
 export class FondaroOAuth2Api implements ICredentialType {
 	name = 'fondaroOAuth2Api';
@@ -6,6 +6,8 @@ export class FondaroOAuth2Api implements ICredentialType {
 	extends = ['oAuth2Api'];
 
 	displayName = 'Fondaro OAuth2 API';
+
+	icon: Icon = 'file:fondaro.svg';
 
 	documentationUrl = 'https://github.com/fondaro/n8n-nodes-fondaro?tab=readme-ov-file#credentials';
 

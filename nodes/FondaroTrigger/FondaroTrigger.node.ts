@@ -41,6 +41,9 @@ async function fondaroApiRequest(
 	}
 }
 
+// Webhook trigger nodes cannot run as AI agent tools, and usableAsTool only
+// accepts true, so the property is intentionally omitted here.
+// eslint-disable-next-line @n8n/community-nodes/node-usable-as-tool
 export class FondaroTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Fondaro Trigger',

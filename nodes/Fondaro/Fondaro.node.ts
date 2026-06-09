@@ -997,7 +997,7 @@ export class Fondaro implements INodeType {
 					},
 				},
 				description:
-					'Tags to add to the lead. Missing tags are created automatically. Choose from the list, or specify names using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+					'Tags to add to the lead, by name. Missing tags are created automatically. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				routing: {
 					send: {
 						type: 'body',
