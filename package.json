@@ -1,0 +1,60 @@
+{
+	"name": "n8n-nodes-fondaro",
+	"version": "1.0.0",
+	"description": "n8n community nodes for the Fondaro real estate CRM: lead, deal, task, note and tag actions plus webhook and polling triggers",
+	"license": "MIT",
+	"homepage": "https://fondaro.com",
+	"author": {
+		"name": "Fondaro"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/fondaro/n8n-nodes-fondaro"
+	},
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"fondaro",
+		"crm",
+		"real-estate",
+		"leads"
+	],
+	"engines": {
+		"node": ">=20.15"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/FondaroApi.credentials.js",
+			"dist/credentials/FondaroOAuth2Api.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Fondaro/Fondaro.node.js",
+			"dist/nodes/FondaroTrigger/FondaroTrigger.node.js",
+			"dist/nodes/FondaroPollingTrigger/FondaroPollingTrigger.node.js"
+		]
+	},
+	"dependencies": {},
+	"devDependencies": {
+		"@n8n/node-cli": "^0.34.0",
+		"eslint": "9.32.0",
+		"n8n-workflow": "^2.16.0",
+		"prettier": "3.6.2",
+		"typescript": "5.9.2"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}
