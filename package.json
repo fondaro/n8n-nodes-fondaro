@@ -1,11 +1,12 @@
 {
 	"name": "n8n-nodes-fondaro",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "n8n community nodes for the Fondaro real estate CRM: lead, deal, task, note and tag actions plus webhook and polling triggers",
 	"license": "MIT",
 	"homepage": "https://fondaro.com",
 	"author": {
-		"name": "Fondaro"
+		"name": "Fondaro",
+		"email": "satherjonathan@proton.me"
 	},
 	"repository": {
 		"type": "git",
