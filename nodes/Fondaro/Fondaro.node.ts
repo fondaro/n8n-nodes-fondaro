@@ -7,10 +7,11 @@ import {
 } from 'n8n-workflow';
 
 const CRM_STATUS_OPTIONS: INodePropertyOptions[] = [
+	// 'lead' is the entry status; the dashboard CRM labels it "New", so we match.
+	{ name: 'New', value: 'lead' },
+	{ name: 'Potential', value: 'potential' },
 	{ name: 'Bad Timing', value: 'bad_timing' },
 	{ name: 'Client', value: 'client' },
-	{ name: 'Lead', value: 'lead' },
-	{ name: 'Potential', value: 'potential' },
 	{ name: 'Unqualified', value: 'unqualified' },
 ];
 
@@ -280,8 +281,9 @@ export class Fondaro implements INodeType {
 						name: 'language',
 						type: 'string',
 						default: '',
-						placeholder: 'e.g. en',
-						description: 'Preferred language of the lead as a BCP-47 tag, for example en or es',
+						placeholder: 'e.g. en-GB or es-ES',
+						description:
+							'Preferred language of the lead as a BCP-47 tag (e.g. en-GB, es-ES, sv-SE). Casing is normalised automatically; values that are not valid language tags are rejected.',
 						routing: {
 							send: {
 								type: 'body',
@@ -321,11 +323,46 @@ export class Fondaro implements INodeType {
 						name: 'phoneNumber',
 						type: 'string',
 						default: '',
-						description: 'Phone number of the lead',
+						placeholder: 'e.g. +34600123456',
+						description:
+							'Phone number in international E.164 format, including the country code with a leading + (e.g. +34600123456). Spaces and dashes are fine and get stripped; numbers without a country code are rejected.',
 						routing: {
 							send: {
 								type: 'body',
 								property: 'phoneNumber',
+							},
+						},
+					},
+					{
+						displayName: 'Source Name or ID',
+						name: 'source',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getLeadSources',
+						},
+						default: 'n8n',
+						description: 'Where the lead originated. Defaults to n8n; set this when n8n is only the pipe (e.g. a Meta or portal lead). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'source',
+							},
+						},
+					},
+					{
+						displayName: 'Tag Names or IDs',
+						name: 'tags',
+						type: 'multiOptions',
+						typeOptions: {
+							loadOptionsMethod: 'getTags',
+						},
+						default: [],
+						description:
+							'Tags to apply to the lead, by name. Missing tags are created automatically. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'tags',
 							},
 						},
 					},
@@ -562,7 +599,8 @@ export class Fondaro implements INodeType {
 						type: 'string',
 						default: '',
 						placeholder: 'e.g. en',
-						description: 'New preferred language of the lead as a BCP-47 tag',
+						description:
+							'New preferred language of the lead as a BCP-47 tag (e.g. en-GB, es-ES). Casing is normalised automatically; invalid tags are rejected.',
 						routing: {
 							send: {
 								type: 'body',
@@ -602,7 +640,9 @@ export class Fondaro implements INodeType {
 						name: 'phoneNumber',
 						type: 'string',
 						default: '',
-						description: 'New phone number of the lead',
+						placeholder: 'e.g. +34600123456',
+						description:
+							'New phone number in international E.164 format, including the country code with a leading + (e.g. +34600123456). Numbers without a country code are rejected.',
 						routing: {
 							send: {
 								type: 'body',
@@ -1140,6 +1180,9 @@ export class Fondaro implements INodeType {
 			},
 			async getAssignees(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/assignees');
+			},
+			async getLeadSources(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/lead-sources');
 			},
 		},
 	};
