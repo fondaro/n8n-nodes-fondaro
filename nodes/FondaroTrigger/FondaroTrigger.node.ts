@@ -52,7 +52,8 @@ export class FondaroTrigger implements INodeType {
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{$parameter["events"].join(", ")}}',
-		description: 'Starts the workflow when Fondaro CRM events occur, delivered as signed webhooks',
+		description:
+			'Starts the workflow on real-time Fondaro CRM events — new lead, lead status changed, call logged, deal and task events — delivered as signed webhooks',
 		defaults: {
 			name: 'Fondaro Trigger',
 		},

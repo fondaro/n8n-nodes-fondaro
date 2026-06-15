@@ -50,7 +50,8 @@ export class Fondaro implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Create, find and update Fondaro CRM leads, deals, tasks, notes and tags',
+		description:
+			"Create, find and update Fondaro CRM leads, deals, tasks, notes and tags, and read a lead's activity and call log",
 		defaults: {
 			name: 'Fondaro',
 		},
