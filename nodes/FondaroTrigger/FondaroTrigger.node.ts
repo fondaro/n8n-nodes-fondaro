@@ -81,6 +81,12 @@ export class FondaroTrigger implements INodeType {
 				default: [],
 				options: [
 					{
+						name: 'Call Logged',
+						value: 'call.logged',
+						description:
+							'Triggers when a call is logged on a lead, with its outcome (e.g. no answer, success)',
+					},
+					{
 						name: 'Deal Created',
 						value: 'deal.created',
 						description: 'Triggers when a deal is created',

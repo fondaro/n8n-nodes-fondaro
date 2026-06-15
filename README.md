@@ -70,6 +70,7 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 | Lead | Create | Create a new lead |
 | Lead | Find | Find one lead by email, phone or external ID |
 | Lead | Get | Get a lead by its numeric ID |
+| Lead | Get Activities | Read a lead's activity feed — notes, tasks, emails, status changes and call attempts with their outcomes |
 | Lead | Search | Free text search across leads, with limit and offset |
 | Lead | Update Contact | Update name, email, phone, lead type or language |
 | Lead | Update Status | Set the CRM status |
@@ -99,6 +100,45 @@ Tag and assignee dropdowns load live from your organization. The status and stag
 
 Deal currency is controlled by your organization settings in Fondaro; the node never sends a currency. A 400 on deal creation means the organization has no billing currency set yet.
 
+### Reading activity and call outcomes
+
+**Lead > Get Activities** returns a lead's unified, paginated activity feed: notes, tasks, emails, status changes, deal-stage changes, assignee changes and **call attempts with their outcomes**. Each entry is `{ type, occurredAt, …type-specific fields }`; the response is `{ entries, total, hasMore }`.
+
+- Optional **Limit** (1–100, default 20) and **Offset** for paging.
+- Optional **Types** — a comma-separated filter, e.g. `call` to fetch only the call log, or `call,note,status-change`. Valid values: `call`, `note`, `task-created`, `task-completed`, `email`, `status-change`, `deal-stage-change`, `deal-won`, `deal-lost`, `assignee-change`, `lead-created`.
+
+A call entry looks like:
+
+```json
+{
+  "type": "call",
+  "occurredAt": "2026-06-15T10:00:00.000Z",
+  "call": {
+    "id": "…",
+    "direction": "outbound",
+    "outcome": "no_answer",
+    "status": "no-answer",
+    "durationSeconds": 0,
+    "startedAt": "…",
+    "endedAt": "…",
+    "hasRecording": false
+  }
+}
+```
+
+`outcome` is the call result: `success` (connected), `no_answer` (tried, nobody picked up), `invalid_number`, `bad_timing`, `not_interested`. Transcripts and recording URLs are never included — only `hasRecording`.
+
+**Call summary on the lead record.** Every **Lead > Get / Find / Search** result now also carries the latest call summary, so you can branch a flow without a separate Get Activities call:
+
+| Field | Meaning |
+|---|---|
+| `totalCalls` | Number of calls placed/received. `0` ⇒ assigned but never called. |
+| `lastCallStatus` | Outcome of the most recent call. `no_answer` ⇒ called, nobody picked up. |
+| `lastCallAt` | When the most recent call happened. |
+| `lastCallDirection` | `inbound` or `outbound`. |
+
+This answers "assigned-but-not-called yet" (`totalCalls === 0`) vs "called, no answer" (`lastCallStatus === 'no_answer'`) — the distinction the CRM status enum does not encode.
+
 ## The Fondaro Trigger node (webhooks)
 
 The webhook trigger registers a subscription with Fondaro when the workflow is activated and removes it on deactivation. Fondaro then POSTs signed deliveries to your n8n webhook URL as events happen.
@@ -117,8 +157,27 @@ The webhook trigger registers a subscription with Fondaro when the workflow is a
 | Task Created | `task.created` |
 | Task Completed | `task.completed` |
 | Note Created | `note.created` |
+| Call Logged | `call.logged` |
 
 Webhook payloads contain IDs only, never contact details. Fetch full records back through the Fondaro action node.
+
+**`call.logged`** fires the first time a call reaches a terminal state, for both outbound and inbound calls attached to a lead. The `data` carries the outcome but no PII:
+
+```json
+{
+  "organizationId": "…",
+  "leadId": 123,
+  "callId": "…",
+  "direction": "outbound",
+  "outcome": "no_answer",
+  "status": "no-answer",
+  "durationSeconds": 0,
+  "missed": true,
+  "occurredAt": "2026-06-15T10:00:00.000Z"
+}
+```
+
+It does **not** fire for calls from unknown numbers that aren't matched to a lead (there is nothing for a lead-centric automation to act on). Use **Lead > Get Activities** to read the full call log back.
 
 ### Signature verification
 

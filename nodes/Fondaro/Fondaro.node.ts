@@ -138,6 +138,19 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
+						name: 'Get Activities',
+						value: 'getActivities',
+						action: 'Get activities for a lead',
+						description:
+							"Read a lead's notes, tasks, emails, status changes and call attempts with their outcomes (e.g. no answer, success)",
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/activities',
+							},
+						},
+					},
+					{
 						name: 'Search',
 						value: 'search',
 						action: 'Search leads',
@@ -203,7 +216,6 @@ export class Fondaro implements INodeType {
 				name: 'email',
 				type: 'string',
 				placeholder: 'name@email.com',
-				required: true,
 				default: '',
 				displayOptions: {
 					show: {
@@ -211,7 +223,8 @@ export class Fondaro implements INodeType {
 						operation: ['create'],
 					},
 				},
-				description: 'Email address of the lead',
+				description:
+					'Email address of the lead. Optional, but the lead needs at least one contact method — provide an email here or a Phone Number in Additional Fields.',
 				routing: {
 					send: {
 						type: 'body',
@@ -467,7 +480,7 @@ export class Fondaro implements INodeType {
 				},
 			},
 
-			// Lead: Get / Update Contact / Update Status
+			// Lead: Get / Get Activities / Update Contact / Update Status
 			{
 				displayName: 'Lead ID',
 				name: 'leadId',
@@ -477,10 +490,75 @@ export class Fondaro implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['lead'],
-						operation: ['get', 'updateContact', 'updateStatus'],
+						operation: ['get', 'getActivities', 'updateContact', 'updateStatus'],
 					},
 				},
 				description: 'Numeric ID of the lead',
+			},
+
+			// Lead: Get Activities
+			{
+				displayName: 'Additional Fields',
+				name: 'additionalFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: {
+					show: {
+						resource: ['lead'],
+						operation: ['getActivities'],
+					},
+				},
+				options: [
+					{
+						displayName: 'Limit',
+						name: 'limit',
+						type: 'number',
+						typeOptions: {
+							minValue: 1,
+							maxValue: 100,
+						},
+						default: 50,
+						description: 'Max number of results to return',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'limit',
+							},
+						},
+					},
+					{
+						displayName: 'Offset',
+						name: 'offset',
+						type: 'number',
+						typeOptions: {
+							minValue: 0,
+						},
+						default: 0,
+						description: 'Number of entries to skip, for paging',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'offset',
+							},
+						},
+					},
+					{
+						displayName: 'Types',
+						name: 'types',
+						type: 'string',
+						default: '',
+						placeholder: 'call,note,status-change',
+						description:
+							'Comma-separated list to return only certain activity types. Valid values: call, note, task-created, task-completed, email, status-change, deal-stage-change, deal-won, deal-lost, assignee-change, lead-created. Leave empty for all. Use "call" to fetch just the call log.',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'types',
+							},
+						},
+					},
+				],
 			},
 
 			// Lead: Search
