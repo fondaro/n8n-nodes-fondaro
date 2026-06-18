@@ -51,7 +51,7 @@ export class Fondaro implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description:
-			"Create, find and update Fondaro CRM leads, deals, tasks, notes and tags, and read a lead's activity and call log",
+			"Create, find and update Fondaro CRM leads, deals, tasks, notes and tags, read a lead's activity and call log, and resolve team members by ID",
 		defaults: {
 			name: 'Fondaro',
 		},
@@ -83,6 +83,7 @@ export class Fondaro implements INodeType {
 					{ name: 'Note', value: 'note' },
 					{ name: 'Tag', value: 'tag' },
 					{ name: 'Task', value: 'task' },
+					{ name: 'User', value: 'user' },
 				],
 				default: 'lead',
 			},
@@ -782,6 +783,30 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
+						name: 'Close Lost',
+						value: 'closeLost',
+						action: 'Close a deal as lost',
+						description: 'Mark a deal as lost, optionally with a reason',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/integrations/v1/deals/{{$parameter.dealId}}/lost',
+							},
+						},
+					},
+					{
+						name: 'Close Won',
+						value: 'closeWon',
+						action: 'Close a deal as won',
+						description: 'Mark a deal as won',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/integrations/v1/deals/{{$parameter.dealId}}/won',
+							},
+						},
+					},
+					{
 						name: 'Create',
 						value: 'create',
 						action: 'Create a deal',
@@ -832,7 +857,7 @@ export class Fondaro implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['deal'],
-						operation: ['changeStage', 'get'],
+						operation: ['changeStage', 'closeLost', 'closeWon', 'get'],
 					},
 				},
 				description: 'UUID of the deal',
@@ -855,6 +880,27 @@ export class Fondaro implements INodeType {
 					send: {
 						type: 'body',
 						property: 'stage',
+					},
+				},
+			},
+
+			// Deal: Close Lost
+			{
+				displayName: 'Lost Reason',
+				name: 'lostReason',
+				type: 'string',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['deal'],
+						operation: ['closeLost'],
+					},
+				},
+				description: 'Optional free-text reason the deal was lost',
+				routing: {
+					send: {
+						type: 'body',
+						property: 'lostReason',
 					},
 				},
 			},
@@ -1248,6 +1294,64 @@ export class Fondaro implements INodeType {
 						},
 					},
 				],
+			},
+
+			// ----------------------------------
+			//             User
+			// ----------------------------------
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['user'],
+					},
+				},
+				options: [
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get a team user by ID',
+						description:
+							'Resolve a single team member (email, name, role) by their user ID. Use this to turn a user_… value from assigneeIds or lead.assigned into a rep email.',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/users/{{$parameter.userId}}',
+							},
+						},
+					},
+					{
+						name: 'List',
+						value: 'list',
+						action: 'List team users',
+						description: 'List all team members (email, name, role) in the organization',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '/integrations/v1/users',
+							},
+						},
+					},
+				],
+				default: 'get',
+			},
+			{
+				displayName: 'User ID',
+				name: 'userId',
+				type: 'string',
+				required: true,
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['user'],
+						operation: ['get'],
+					},
+				},
+				description:
+					'The user ID (user_…) to resolve, taken from a lead assigneeIds value or from lead.assigned added/removed',
 			},
 		],
 	};

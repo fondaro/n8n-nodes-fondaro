@@ -53,7 +53,7 @@ export class FondaroTrigger implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["events"].join(", ")}}',
 		description:
-			'Starts the workflow on real-time Fondaro CRM events — new lead, lead status changed, call logged, deal and task events — delivered as signed webhooks',
+			'Starts the workflow on real-time Fondaro CRM events — new lead, lead status changed, call logged, call analyzed, deal and task events — delivered as signed webhooks',
 		defaults: {
 			name: 'Fondaro Trigger',
 		},
@@ -81,6 +81,12 @@ export class FondaroTrigger implements INodeType {
 				required: true,
 				default: [],
 				options: [
+					{
+						name: 'Call Analyzed',
+						value: 'call.analyzed',
+						description:
+							"Triggers when a call's AI analysis (summary, sentiment, interest, objections) is ready",
+					},
 					{
 						name: 'Call Logged',
 						value: 'call.logged',
