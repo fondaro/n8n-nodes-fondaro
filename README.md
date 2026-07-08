@@ -83,6 +83,7 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 | Task | Create | Create a task on a lead |
 | Note | Create | Add a note to a lead |
 | Tag | Add | Add tags to a lead by name (additive, missing tags are created) |
+| Tag | Get | Read a lead's current set of tags |
 | User | List | List your team members with their email, name and role |
 | User | Get | Resolve one team member (email, name, role) by their `user_…` ID |
 
@@ -186,6 +187,8 @@ The webhook trigger registers a subscription with Fondaro when the workflow is a
 | Task Created | `task.created` |
 | Task Completed | `task.completed` |
 | Note Created | `note.created` |
+| Lead Tagged | `lead.tagged` |
+| Lead Untagged | `lead.untagged` |
 | Call Logged | `call.logged` |
 | Call Analyzed | `call.analyzed` |
 
@@ -204,6 +207,8 @@ So you can route without a follow-up lookup, the lead and deal events carry the 
 | `deal.stageChanged` | `leadId` |
 | `deal.won` | `leadId`, `value` |
 | `deal.lost` | `leadId` |
+| `lead.tagged` | `tagId`, `changedBy` (one delivery per tag added) |
+| `lead.untagged` | `tagId`, `changedBy` (one delivery per tag removed) |
 
 `value` is the deal's own amount (the sale figure you entered) in your organization's currency — not Fondaro's lead pricing, which is never emitted. `status` is the CRM status (`lead`/New, `potential`, …); `assigneeIds` is the set of `user_…` IDs the lead is assigned to (empty ⇒ unassigned). A `lead.assigned` delivery, for example:
 

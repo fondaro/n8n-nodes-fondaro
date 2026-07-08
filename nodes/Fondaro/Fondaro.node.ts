@@ -1130,6 +1130,18 @@ export class Fondaro implements INodeType {
 							},
 						},
 					},
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get tags for a lead',
+						description: "Read the lead's current set of tags",
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/tags',
+							},
+						},
+					},
 				],
 				default: 'add',
 			},
@@ -1142,10 +1154,10 @@ export class Fondaro implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['tag'],
-						operation: ['add'],
+						operation: ['add', 'get'],
 					},
 				},
-				description: 'Numeric ID of the lead to tag',
+				description: 'Numeric ID of the lead',
 			},
 			{
 				displayName: 'Tag Names or IDs',

@@ -124,6 +124,18 @@ export class FondaroTrigger implements INodeType {
 						description: 'Triggers when the CRM status of a lead changes',
 					},
 					{
+						name: 'Lead Tagged',
+						value: 'lead.tagged',
+						description:
+							'Triggers when a tag is added to a lead (one event per tag)',
+					},
+					{
+						name: 'Lead Untagged',
+						value: 'lead.untagged',
+						description:
+							'Triggers when a tag is removed from a lead (one event per tag)',
+					},
+					{
 						name: 'New Lead',
 						value: 'lead.created',
 						description: 'Triggers when a new lead is created in the CRM',
