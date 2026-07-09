@@ -7,7 +7,9 @@ import {
 	type IDataObject,
 	type IHookFunctions,
 	type IHttpRequestMethods,
+	type ILoadOptionsFunctions,
 	type INodeType,
+	type INodePropertyOptions,
 	type INodeTypeDescription,
 	type IWebhookFunctions,
 	type IWebhookResponseData,
@@ -22,7 +24,7 @@ import {
 const FRESHNESS_WINDOW_SECONDS = 300;
 
 async function fondaroApiRequest(
-	this: IHookFunctions,
+	this: IHookFunctions | ILoadOptionsFunctions,
 	method: IHttpRequestMethods,
 	endpoint: string,
 	body?: IDataObject,
@@ -158,7 +160,36 @@ export class FondaroTrigger implements INodeType {
 				],
 				description: 'The Fondaro events that should trigger this workflow',
 			},
+			{
+				displayName: 'Only for Tags',
+				name: 'tagFilter',
+				type: 'multiOptions',
+				typeOptions: {
+					loadOptionsMethod: 'getTags',
+				},
+				default: [],
+				displayOptions: {
+					show: {
+						events: ['lead.tagged', 'lead.untagged'],
+					},
+				},
+				description: 'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+				hint: 'Only start the workflow when the tagged/untagged event concerns one of these tags. Leave empty for all tags. Filtered by stable tag ID inside this node, so it survives renames; other event types are never filtered.',
+			},
 		],
+	};
+
+	methods = {
+		loadOptions: {
+			async getTags(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const options = await fondaroApiRequest.call(
+					this,
+					'GET',
+					'/integrations/v1/options/tags?value=id',
+				);
+				return options as unknown as INodePropertyOptions[];
+			},
+		},
 	};
 
 	webhookMethods = {
@@ -282,8 +313,26 @@ export class FondaroTrigger implements INodeType {
 			return reject('Signature verification failed');
 		}
 
+		// Optional client-side tag filter (tags-v2): a non-matching tagged/
+		// untagged delivery is acked with 200 so Fondaro never retries, but the
+		// workflow is not started. Filtering is by stable tag ID (rename-proof);
+		// every other event type passes through untouched.
+		const body = this.getBodyData() as IDataObject;
+		const eventType = body.event as string | undefined;
+		if (eventType === 'lead.tagged' || eventType === 'lead.untagged') {
+			const tagFilter = this.getNodeParameter('tagFilter', []) as string[];
+			if (Array.isArray(tagFilter) && tagFilter.length > 0) {
+				const data = body.data as IDataObject | undefined;
+				const tagId = typeof data?.tagId === 'string' ? data.tagId : undefined;
+				if (!tagId || !tagFilter.includes(tagId)) {
+					res.status(200).json({ filtered: true });
+					return { noWebhookResponse: true };
+				}
+			}
+		}
+
 		return {
-			workflowData: [this.helpers.returnJsonArray(this.getBodyData() as IDataObject)],
+			workflowData: [this.helpers.returnJsonArray(body)],
 		};
 	}
 }

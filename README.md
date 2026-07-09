@@ -82,7 +82,7 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 | Deal | Get Many | List all deals on a lead |
 | Task | Create | Create a task on a lead |
 | Note | Create | Add a note to a lead |
-| Tag | Add | Add tags to a lead by name (additive, missing tags are created) |
+| Tag | Add | Add tags to a lead by name or ID (additive; missing names are created, IDs must exist) |
 | Tag | Get | Read a lead's current set of tags |
 | User | List | List your team members with their email, name and role |
 | User | Get | Resolve one team member (email, name, role) by their `user_…` ID |
@@ -97,7 +97,7 @@ The **Lead > Find** operation returns only leads that have been purchased into y
 
 ### Dropdown values
 
-Tag and assignee dropdowns load live from your organization. The status and stage dropdowns are fixed lists, kept in sync with Fondaro:
+Tag and assignee dropdowns load live from your organization. Since 1.4.0 the tag dropdowns bind stable tag **IDs** (shown by name), so a picked tag keeps working after it is renamed or merged in the dashboard; workflows saved with older versions hold names, which the API still accepts. In the `tags` field, a plain name that does not exist is created automatically, while a UUID-shaped entry must match an existing tag and is never created. The status and stage dropdowns are fixed lists, kept in sync with Fondaro:
 
 - CRM status: `lead`, `potential`, `bad_timing`, `client`, `unqualified`
 - Lead type: `buyer`, `seller`
@@ -209,6 +209,10 @@ So you can route without a follow-up lookup, the lead and deal events carry the 
 | `deal.lost` | `leadId` |
 | `lead.tagged` | `tagId`, `changedBy` (one delivery per tag added) |
 | `lead.untagged` | `tagId`, `changedBy` (one delivery per tag removed) |
+
+**Resolving a `tagId` to its name:** call `GET /integrations/v1/tags/{tagId}` (scope `tags:read`) with an HTTP Request node — it returns `{ id, name, color, archivedAt }` and works for archived tags. For `lead.tagged` events the Fondaro node's **Tag > Get** on the lead also works; for `lead.untagged` the id lookup is the only way, since the tag is no longer in the lead's set.
+
+**Filtering tag events:** the trigger node has an optional **Only for Tags** field (shown when Lead Tagged/Untagged is selected). Non-matching deliveries are acknowledged and dropped inside the node, by stable tag ID, so the filter survives renames. Note that merging tags in the dashboard deliberately fires **no** `lead.tagged` events for the re-pointed leads — a merge is a catalogue correction, not thousands of lead events.
 
 `value` is the deal's own amount (the sale figure you entered) in your organization's currency — not Fondaro's lead pricing, which is never emitted. `status` is the CRM status (`lead`/New, `potential`, …); `assigneeIds` is the set of `user_…` IDs the lead is assigned to (empty ⇒ unassigned). A `lead.assigned` delivery, for example:
 

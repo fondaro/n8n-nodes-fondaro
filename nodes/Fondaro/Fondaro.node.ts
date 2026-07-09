@@ -372,8 +372,8 @@ export class Fondaro implements INodeType {
 							loadOptionsMethod: 'getTags',
 						},
 						default: [],
-						description:
-							'Tags to apply to the lead, by name. Missing tags are created automatically. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						description: 'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+						hint: 'Picked tags bind stable IDs (rename-proof). Plain names that do not exist are created automatically; IDs must match existing tags and are never created.',
 						routing: {
 							send: {
 								type: 'body',
@@ -1122,7 +1122,7 @@ export class Fondaro implements INodeType {
 						value: 'add',
 						action: 'Add tags to a lead',
 						description:
-							'Add tags to a lead by name. Tags are additive and missing tags are created automatically.',
+							'Add tags to a lead by name or ID. Additive: plain names that do not exist are created automatically; IDs must match existing tags and are never created.',
 						routing: {
 							request: {
 								method: 'POST',
@@ -1173,8 +1173,8 @@ export class Fondaro implements INodeType {
 						operation: ['add'],
 					},
 				},
-				description:
-					'Tags to add to the lead, by name. Missing tags are created automatically. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+				description: 'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+				hint: 'Picked tags bind stable IDs (rename-proof). Plain names that do not exist are created automatically; IDs must match existing tags and are never created.',
 				routing: {
 					send: {
 						type: 'body',
@@ -1371,7 +1371,7 @@ export class Fondaro implements INodeType {
 	methods = {
 		loadOptions: {
 			async getTags(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/tags');
+				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/tags?value=id');
 			},
 			async getAssignees(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/assignees');
