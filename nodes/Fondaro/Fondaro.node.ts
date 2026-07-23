@@ -153,6 +153,19 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
+						name: 'Get Many',
+						value: 'getMany',
+						action: 'Get many leads',
+						description:
+							'List leads in your CRM, optionally filtered by tags and CRM status. Tag filtering is OR-based: a lead matches if it carries any of the tags. Ordered newest first by purchase date.',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '/integrations/v1/leads',
+							},
+						},
+					},
+					{
 						name: 'Search',
 						value: 'search',
 						action: 'Search leads',
@@ -557,6 +570,86 @@ export class Fondaro implements INodeType {
 							send: {
 								type: 'query',
 								property: 'types',
+							},
+						},
+					},
+				],
+			},
+
+			// Lead: Get Many
+			{
+				displayName: 'Additional Fields',
+				name: 'additionalFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: {
+					show: {
+						resource: ['lead'],
+						operation: ['getMany'],
+					},
+				},
+				options: [
+					{
+						displayName: 'CRM Status',
+						name: 'crmStatus',
+						type: 'options',
+						options: CRM_STATUS_OPTIONS,
+						default: 'lead',
+						description: 'Return only leads with this CRM status',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'crmStatus',
+							},
+						},
+					},
+					{
+						displayName: 'Limit',
+						name: 'limit',
+						type: 'number',
+						typeOptions: {
+							minValue: 1,
+							maxValue: 100,
+						},
+						default: 50,
+						description: 'Max number of results to return',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'limit',
+							},
+						},
+					},
+					{
+						displayName: 'Offset',
+						name: 'offset',
+						type: 'number',
+						typeOptions: {
+							minValue: 0,
+						},
+						default: 0,
+						description: 'Number of results to skip, for paging',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'offset',
+							},
+						},
+					},
+					{
+						displayName: 'Tags',
+						name: 'tags',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. vip,priority',
+						description:
+							'Comma-separated tag names or IDs to filter by. OR semantics: a lead matches if it carries any of the tags. Names match case-insensitively; an entry that does not resolve to an existing tag fails the call with a 404 naming it, so a typo never silently returns an empty set. A tag name that itself contains a comma can only be filtered by its ID.',
+						hint: 'Archived tags still resolve, so automations survive catalogue clean-ups. Prefer IDs in flows that must survive a tag rename.',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'tags',
 							},
 						},
 					},

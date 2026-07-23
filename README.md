@@ -1,12 +1,12 @@
 # n8n-nodes-fondaro
 
-This is an n8n community node package for [Fondaro](https://fondaro.com), the real estate CRM. It lets you create and update leads, deals, tasks, notes and tags, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in your Fondaro CRM — new leads, status changes, logged calls, and deal and task events.
+This is an n8n community node package for [Fondaro](https://fondaro.com), the real estate CRM. It lets you create and update leads, deals, tasks, notes and tags, list leads by tag or CRM status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in your Fondaro CRM — new leads, status changes, logged calls, and deal and task events.
 
 The package ships three nodes:
 
 | Node | Type | What it does |
 |---|---|---|
-| **Fondaro** | Action | Create, find and update leads, deals, tasks, notes and tags |
+| **Fondaro** | Action | Create, find, list and update leads, deals, tasks, notes and tags |
 | **Fondaro Trigger** | Webhook trigger | Starts a workflow the moment a CRM event happens, delivered as a signed webhook |
 | **Fondaro Polling Trigger** | Polling trigger | Starts a workflow by polling for new leads, for instances that cannot receive webhooks |
 
@@ -71,6 +71,7 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 | Lead | Find | Find one lead by email, phone or external ID |
 | Lead | Get | Get a lead by its numeric ID |
 | Lead | Get Activities | Read a lead's activity feed — notes, tasks, emails, status changes and call attempts with their outcomes |
+| Lead | Get Many | List leads, filterable by tags (names or IDs, OR semantics) and CRM status, with limit and offset |
 | Lead | Search | Free text search across leads, with limit and offset |
 | Lead | Update Contact | Update name, email, phone, lead type or language |
 | Lead | Update Status | Set the CRM status |
@@ -94,6 +95,16 @@ The node can also be used as a tool by n8n AI agents.
 ### Find returns purchased leads only
 
 The **Lead > Find** operation returns only leads that have been purchased into your CRM. A 404 response means no purchased lead matched the identifier, not that your key is broken or the API is down.
+
+### Listing leads by tag or status (Get Many)
+
+**Lead > Get Many** lists your CRM working set, newest first by purchase date, and answers "which leads carry tag X today" in one call. All filters live under **Additional Fields**:
+
+- **Tags** — comma-separated tag names or IDs, OR semantics: a lead matches if it carries *any* of the tags. Names match case-insensitively; an entry that does not resolve to an existing tag fails the whole call with a 404 naming the entry, so a typo never silently returns an empty set. Archived tags still resolve. A tag name that itself contains a comma can only be filtered by its ID.
+- **CRM Status** — return only leads with that status.
+- **Limit** (1–100, default 50) and **Offset** for paging. The response is `{ leads, total, hasMore }`.
+
+**Every lead payload now carries `tags[]`.** Server-side as of the same release, every lead returned by Create, Find, Get, Get Many, Search and the polling trigger includes its tags as `[{ id, name, color, archivedAt }]` — always present, `[]` when untagged. **Tag > Get** returns the same shape. For real-time tag automations prefer the **Lead Tagged / Lead Untagged** triggers; use Get Many as a periodic reconcile so a missed webhook delivery never strands a lead.
 
 ### Dropdown values
 
