@@ -7,7 +7,10 @@ export class FondaroOAuth2Api implements ICredentialType {
 
 	displayName = 'Fondaro OAuth2 API';
 
-	icon: Icon = 'file:fondaro.svg';
+	icon: Icon = {
+		light: 'file:fondaro.svg',
+		dark: 'file:fondaro.dark.svg',
+	};
 
 	documentationUrl = 'https://github.com/fondaro/n8n-nodes-fondaro?tab=readme-ov-file#credentials';
 

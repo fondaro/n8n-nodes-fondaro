@@ -43,14 +43,14 @@ async function fondaroApiRequest(
 	}
 }
 
-// Webhook trigger nodes cannot run as AI agent tools, and usableAsTool only
-// accepts true, so the property is intentionally omitted here.
-// eslint-disable-next-line @n8n/community-nodes/node-usable-as-tool
 export class FondaroTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Fondaro Trigger',
 		name: 'fondaroTrigger',
-		icon: 'file:fondaro.svg',
+		icon: {
+			light: 'file:fondaro.svg',
+			dark: 'file:fondaro.dark.svg',
+		},
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{$parameter["events"].join(", ")}}',
@@ -59,6 +59,7 @@ export class FondaroTrigger implements INodeType {
 		defaults: {
 			name: 'Fondaro Trigger',
 		},
+		usableAsTool: true,
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [
@@ -250,9 +251,14 @@ export class FondaroTrigger implements INodeType {
 							'DELETE',
 							`/integrations/v1/subscriptions/${staticData.subscriptionId}`,
 						);
-					} catch {
-						// The delete endpoint is idempotent on the Fondaro side; a failure
-						// here must not block deactivating the workflow
+					} catch (error) {
+						this.logger.warn(
+							'Failed to delete the Fondaro subscription during workflow deactivation',
+							{
+								error,
+								subscriptionId: staticData.subscriptionId,
+							},
+						);
 					}
 				}
 				delete staticData.subscriptionId;

@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-fondaro",
-	"version": "1.5.0",
+	"version": "1.5.1",
 	"description": "n8n community node for the Fondaro real estate CRM: manage leads, deals, tasks, notes and tags, list leads filtered by tag or CRM status, resolve team members by ID, read a lead's activity and call log with call outcomes, and trigger workflows on real-time CRM events (new lead, status changed, call logged, call analyzed, deal and task events) via signed webhooks.",
 	"license": "MIT",
 	"homepage": "https://fondaro.com",
@@ -55,7 +55,7 @@
 	},
 	"dependencies": {},
 	"devDependencies": {
-		"@n8n/node-cli": "^0.34.0",
+		"@n8n/node-cli": "^0.41.2",
 		"eslint": "9.29.0",
 		"n8n-workflow": "^2.16.0",
 		"prettier": "3.6.2",

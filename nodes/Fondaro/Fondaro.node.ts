@@ -46,7 +46,10 @@ export class Fondaro implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Fondaro',
 		name: 'fondaro',
-		icon: 'file:fondaro.svg',
+		icon: {
+			light: 'file:fondaro.svg',
+			dark: 'file:fondaro.dark.svg',
+		},
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
