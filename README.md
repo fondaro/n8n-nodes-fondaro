@@ -1,12 +1,12 @@
 # n8n-nodes-fondaro
 
-This is an n8n community node package for [Fondaro](https://fondaro.com), the real estate CRM. It lets you create and update leads, deals, tasks, notes and tags, list leads by tag or CRM status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in your Fondaro CRM — new leads, status changes, logged calls, and deal and task events.
+This is an n8n community node package for [Fondaro](https://fondaro.com), the real estate CRM. It lets you create, assign and update leads, deals, tasks, notes and tags, list leads by assignee, unassigned state, tag or CRM status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in your Fondaro CRM — new leads, status changes, logged calls, and deal and task events.
 
 The package ships three nodes:
 
 | Node | Type | What it does |
 |---|---|---|
-| **Fondaro** | Action | Create, find, list and update leads, deals, tasks, notes and tags |
+| **Fondaro** | Action | Create, find, assign, list and update leads, deals, tasks, notes and tags |
 | **Fondaro Trigger** | Webhook trigger | Starts a workflow the moment a CRM event happens, delivered as a signed webhook |
 | **Fondaro Polling Trigger** | Polling trigger | Starts a workflow by polling for new leads, for instances that cannot receive webhooks |
 
@@ -39,7 +39,7 @@ For containerized or declarative setups you can have n8n install the package on 
 
 ```bash
 N8N_COMMUNITY_PACKAGES_MANAGED_BY_ENV=true
-N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.0.0"}]'
+N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.6.0"}]'
 ```
 
 ## Credentials
@@ -67,11 +67,12 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 
 | Resource | Operation | Description |
 |---|---|---|
+| Lead | Add Assignees | Add one or more assignees without removing the lead's existing assignees |
 | Lead | Create | Create a new lead |
 | Lead | Find | Find one lead by email, phone or external ID |
 | Lead | Get | Get a lead by its numeric ID |
 | Lead | Get Activities | Read a lead's activity feed — notes, tasks, emails, status changes and call attempts with their outcomes |
-| Lead | Get Many | List leads, filterable by tags (names or IDs, OR semantics) and CRM status, with limit and offset |
+| Lead | Get Many | List leads, filterable by assignee, unassigned state, tags (names or IDs, OR semantics) and CRM status, with limit and offset |
 | Lead | Search | Free text search across leads, with limit and offset |
 | Lead | Update Contact | Update name, email, phone, lead type or language |
 | Lead | Update Status | Set the CRM status |
@@ -96,10 +97,16 @@ The node can also be used as a tool by n8n AI agents.
 
 The **Lead > Find** operation returns only leads that have been purchased into your CRM. A 404 response means no purchased lead matched the identifier, not that your key is broken or the API is down.
 
-### Listing leads by tag or status (Get Many)
+### Adding lead assignees
 
-**Lead > Get Many** lists your CRM working set, newest first by purchase date, and answers "which leads carry tag X today" in one call. All filters live under **Additional Fields**:
+**Lead > Add Assignees** takes a numeric Lead ID and one or more team members. It is additive: existing assignees stay on the lead, and selecting someone who is already assigned is a successful no-op. The response contains the updated lead plus `added` and `removed` arrays; `removed` is always empty for this operation.
 
+### Listing leads by assignee, tag or status (Get Many)
+
+**Lead > Get Many** lists your CRM working set, newest first by purchase date, and answers "which leads belong to this rep, are unassigned, or carry tag X today" in one call. All filters live under **Additional Fields**:
+
+- **Assignee** — return leads assigned to one selected team member.
+- **Unassigned** — return only leads whose assignee set is empty. Assignee and Unassigned are mutually exclusive.
 - **Tags** — comma-separated tag names or IDs, OR semantics: a lead matches if it carries *any* of the tags. Names match case-insensitively; an entry that does not resolve to an existing tag fails the whole call with a 404 naming the entry, so a typo never silently returns an empty set. Archived tags still resolve. A tag name that itself contains a comma can only be filtered by its ID.
 - **CRM Status** — return only leads with that status.
 - **Limit** (1–100, default 50) and **Offset** for paging. The response is `{ leads, total, hasMore }`.
@@ -118,7 +125,7 @@ Deal currency is controlled by your organization settings in Fondaro; the node n
 
 **`lead` is the entry status; the dashboard labels it "New".** They are the same value — the dropdown shows **New**, the API value is `lead`.
 
-**There is no `unassigned` status.** A lead is *unassigned* when its `assigneeIds` is empty — it still has a status (usually `lead`/New). Read assignment from `assigneeIds`, not from `status`. The `lead.created`, `lead.statusChanged` and `lead.assigned` events all carry `assigneeIds`, so you can compute "unassigned" directly with `data.assigneeIds.length === 0`, no extra lookup.
+**There is no `unassigned` status.** A lead is *unassigned* when its `assigneeIds` is empty — it still has a status (usually `lead`/New). Use the **Unassigned** Get Many filter to list that queue, and read assignment from `assigneeIds`, not from `status`. The `lead.created`, `lead.statusChanged` and `lead.assigned` events all carry `assigneeIds`, so you can compute "unassigned" directly with `data.assigneeIds.length === 0`, no extra lookup.
 
 ### Reading activity and call outcomes
 

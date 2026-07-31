@@ -54,7 +54,7 @@ export class Fondaro implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description:
-			"Create, find and update Fondaro CRM leads, deals, tasks, notes and tags, read a lead's activity and call log, and resolve team members by ID",
+			"Create, find, assign and update Fondaro CRM leads, deals, tasks, notes and tags, read a lead's activity and call log, and resolve team members by ID",
 		defaults: {
 			name: 'Fondaro',
 		},
@@ -105,6 +105,19 @@ export class Fondaro implements INodeType {
 					},
 				},
 				options: [
+					{
+						name: 'Add Assignees',
+						value: 'addAssignees',
+						action: 'Add assignees to a lead',
+						description:
+							'Add one or more assignees to a lead without removing its existing assignees',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/assignees',
+							},
+						},
+					},
 					{
 						name: 'Create',
 						value: 'create',
@@ -160,7 +173,7 @@ export class Fondaro implements INodeType {
 						value: 'getMany',
 						action: 'Get many leads',
 						description:
-							'List leads in your CRM, optionally filtered by tags and CRM status. Tag filtering is OR-based: a lead matches if it carries any of the tags. Ordered newest first by purchase date.',
+							'List leads in your CRM, optionally filtered by assignee, unassigned state, tags and CRM status. Tag filtering is OR-based: a lead matches if it carries any of the tags. Ordered newest first by purchase date.',
 						routing: {
 							request: {
 								method: 'GET',
@@ -372,7 +385,8 @@ export class Fondaro implements INodeType {
 							loadOptionsMethod: 'getLeadSources',
 						},
 						default: 'n8n',
-						description: 'Where the lead originated. Defaults to n8n; set this when n8n is only the pipe (e.g. a Meta or portal lead). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						description:
+							'Where the lead originated. Defaults to n8n; set this when n8n is only the pipe (e.g. a Meta or portal lead). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 						routing: {
 							send: {
 								type: 'body',
@@ -388,7 +402,8 @@ export class Fondaro implements INodeType {
 							loadOptionsMethod: 'getTags',
 						},
 						default: [],
-						description: 'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+						description:
+							'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 						hint: 'Picked tags bind stable IDs (rename-proof). Plain names that do not exist are created automatically; IDs must match existing tags and are never created.',
 						routing: {
 							send: {
@@ -498,7 +513,7 @@ export class Fondaro implements INodeType {
 				},
 			},
 
-			// Lead: Get / Get Activities / Update Contact / Update Status
+			// Lead: Add Assignees / Get / Get Activities / Update Contact / Update Status
 			{
 				displayName: 'Lead ID',
 				name: 'leadId',
@@ -508,10 +523,34 @@ export class Fondaro implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['lead'],
-						operation: ['get', 'getActivities', 'updateContact', 'updateStatus'],
+						operation: ['addAssignees', 'get', 'getActivities', 'updateContact', 'updateStatus'],
 					},
 				},
 				description: 'Numeric ID of the lead',
+			},
+			{
+				displayName: 'Assignee Names or IDs',
+				name: 'userIds',
+				type: 'multiOptions',
+				typeOptions: {
+					loadOptionsMethod: 'getAssignees',
+				},
+				required: true,
+				default: [],
+				displayOptions: {
+					show: {
+						resource: ['lead'],
+						operation: ['addAssignees'],
+					},
+				},
+				description:
+					'Users to add to the lead. Existing assignees are preserved. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+				routing: {
+					send: {
+						type: 'body',
+						property: 'userIds',
+					},
+				},
 			},
 
 			// Lead: Get Activities
@@ -594,6 +633,28 @@ export class Fondaro implements INodeType {
 				},
 				options: [
 					{
+						displayName: 'Assignee Name or ID',
+						name: 'assigneeId',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getAssignees',
+						},
+						default: '',
+						displayOptions: {
+							hide: {
+								unassigned: [{ _cnd: { exists: true } }],
+							},
+						},
+						description:
+							'Return only leads assigned to this user. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'assigneeId',
+							},
+						},
+					},
+					{
 						displayName: 'CRM Status',
 						name: 'crmStatus',
 						type: 'options',
@@ -653,6 +714,24 @@ export class Fondaro implements INodeType {
 							send: {
 								type: 'query',
 								property: 'tags',
+							},
+						},
+					},
+					{
+						displayName: 'Unassigned',
+						name: 'unassigned',
+						type: 'boolean',
+						default: false,
+						displayOptions: {
+							hide: {
+								assigneeId: [{ _cnd: { exists: true } }],
+							},
+						},
+						description: 'Whether to return only leads with no assignees',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'unassigned',
 							},
 						},
 					},
@@ -1269,7 +1348,8 @@ export class Fondaro implements INodeType {
 						operation: ['add'],
 					},
 				},
-				description: 'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+				description:
+					'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 				hint: 'Picked tags bind stable IDs (rename-proof). Plain names that do not exist are created automatically; IDs must match existing tags and are never created.',
 				routing: {
 					send: {
