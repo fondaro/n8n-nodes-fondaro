@@ -1,6 +1,6 @@
 # n8n-nodes-fondaro
 
-This is an n8n community node package for [Fondaro](https://fondaro.com), the real estate CRM. It lets you create, assign and update leads, deals, tasks, notes and tags, list leads by assignee, unassigned state, tag or CRM status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in your Fondaro CRM — new leads, status changes, logged calls, and deal and task events.
+This is an n8n community node package for [Fondaro](https://fondaro.com), the real estate CRM. It lets you create, assign and update leads, deals, tasks, notes and tags, read the ad, property references and form answers behind Fondaro-generated leads, list leads by assignee, unassigned state, tag or CRM status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in your Fondaro CRM — new leads, status changes, logged calls, and deal and task events.
 
 The package ships three nodes:
 
@@ -39,7 +39,7 @@ For containerized or declarative setups you can have n8n install the package on 
 
 ```bash
 N8N_COMMUNITY_PACKAGES_MANAGED_BY_ENV=true
-N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.6.0"}]'
+N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.7.0"}]'
 ```
 
 ## Credentials
@@ -113,6 +113,60 @@ The **Lead > Find** operation returns only leads that have been purchased into y
 
 **Every lead payload now carries `tags[]`.** Server-side as of the same release, every lead returned by Create, Find, Get, Get Many, Search and the polling trigger includes its tags as `[{ id, name, color, archivedAt }]` — always present, `[]` when untagged. **Tag > Get** returns the same shape. For real-time tag automations prefer the **Lead Tagged / Lead Untagged** triggers; use Get Many as a periodic reconcile so a missed webhook delivery never strands a lead.
 
+### Reading the ad, property and form answers behind a lead
+
+Every lead returned by **Create, Find, Get, Get Many, Search, Update Contact, Update Status, Add Assignees**, and the polling trigger carries an `origin` field. For a lead Fondaro generated, this is the same frozen acquisition receipt shown in the lead's dashboard panel:
+
+```json
+{
+  "origin": {
+    "version": 1,
+    "channel": "meta_lead_form",
+    "platform": "ig",
+    "capturedAt": "2026-09-03T15:10:00.000Z",
+    "site": null,
+    "ad": {
+      "platform": "meta",
+      "platformAdId": "120210000000000001",
+      "campaignName": "Marbella buyers"
+    },
+    "properties": [
+      {
+        "reference": "R5410204",
+        "source": "resales_online",
+        "role": "advertised"
+      }
+    ],
+    "form": {
+      "provider": "meta",
+      "formId": "120210000000000002",
+      "answers": [
+        {
+          "name": "search_area",
+          "label": "Search area",
+          "values": ["Marbella"]
+        },
+        {
+          "name": "budget",
+          "label": "Budget",
+          "values": ["€1m–€1.5m"]
+        },
+        {
+          "name": "timing",
+          "label": "Timing",
+          "values": ["Within 6 months"]
+        }
+      ]
+    },
+    "utm": null
+  }
+}
+```
+
+Use `origin.properties[].reference` for the property or ad reference and `origin.form.answers[]` for the person's non-contact answers. A property `role` of `viewed` means the person opened that listing on the Fondaro brand site; `advertised` means the listing appeared in the ad. The receipt can also include the brand site visit and campaign details when they were captured.
+
+`origin` is `null` for leads created manually, imported, or received from another integration. Fondaro's raw source metadata and internal lead purchase cost are never returned.
+
 ### Dropdown values
 
 Tag and assignee dropdowns load live from your organization. Since 1.4.0 the tag dropdowns bind stable tag **IDs** (shown by name), so a picked tag keeps working after it is renamed or merged in the dashboard; workflows saved with older versions hold names, which the API still accepts. In the `tags` field, a plain name that does not exist is created automatically, while a UUID-shaped entry must match an existing tag and is never created. The status and stage dropdowns are fixed lists, kept in sync with Fondaro:
@@ -153,18 +207,33 @@ A call entry looks like:
 }
 ```
 
-`outcome` is the call result: `success` (connected), `no_answer` (tried, nobody picked up), `invalid_number`, `bad_timing`, `not_interested`. Transcripts and recording URLs are never included — only `hasRecording`.
+`outcome` is the call result in Fondaro's own vocabulary:
+
+| `outcome` | Meaning |
+|---|---|
+| `success` | Connected. Someone picked up. |
+| `no_answer` | Rang out. Nobody picked up. |
+| `busy` | The line was engaged, the call was declined, or the carrier screened it. A normal telephony result, not a failure. |
+| `failed` | The carrier could not complete the call as dialled. Fondaro records the carrier's own hedge and does not assert why. |
+| `invalid_number` | Stamped only when the carrier's error code proved the destination was unusable. A plain failure is `failed`, never this. |
+| `canceled` | The call ended before it resolved either way. |
+
+Transcripts and recording URLs are never included, only `hasRecording`.
+
+> Old call rows can still carry the retired value `not_interested`. Treat any `outcome` you do not recognise as "no useful result" rather than matching it exactly, so a future value cannot silently break a branch.
 
 **Call summary on the lead record.** Every **Lead > Get / Find / Search** result now also carries the latest call summary, so you can branch a flow without a separate Get Activities call:
 
 | Field | Meaning |
 |---|---|
 | `totalCalls` | Number of calls placed/received. `0` ⇒ assigned but never called. |
-| `lastCallStatus` | Outcome of the most recent call. `no_answer` ⇒ called, nobody picked up. |
+| `lastCallStatus` | Carrier status of the most recent call, in the carrier's own spelling: `completed`, `no-answer`, `busy`, `canceled` or `failed`. Note the hyphen in `no-answer`. This is **not** the `outcome` vocabulary above. |
 | `lastCallAt` | When the most recent call happened. |
 | `lastCallDirection` | `inbound` or `outbound`. |
 
-This answers "assigned-but-not-called yet" (`totalCalls === 0`) vs "called, no answer" (`lastCallStatus === 'no_answer'`) — the distinction the CRM status enum does not encode.
+This answers "assigned-but-not-called yet" (`totalCalls === 0`) vs "called, no answer" (`lastCallStatus === 'no-answer'`), the distinction the CRM status enum does not encode.
+
+> **Two vocabularies, on purpose.** `lastCallStatus` carries the raw carrier status, while the activity feed's `outcome` carries Fondaro's interpretation of it. So the same call reads as `no-answer` in one field and `no_answer` in the other, and as `completed` in one and `success` in the other. Compare each field against its own spelling.
 
 ### Resolving a team member (User resource)
 
@@ -263,6 +332,8 @@ So you can route without a follow-up lookup, the lead and deal events carry the 
   "occurredAt": "2026-06-15T10:00:00.000Z"
 }
 ```
+
+`outcome` uses the Fondaro vocabulary documented under [Reading activity and call outcomes](#reading-activity-and-call-outcomes); `status` is the raw carrier status beside it, so the same call reads `no_answer` in one field and `no-answer` in the other. `missed` is simply `outcome !== 'success'`, so it stays correct for every outcome including ones added later. **Branch on `missed`, or on `outcome === 'success'`, rather than listing every failure value** so a new outcome cannot silently fall through your workflow.
 
 It does **not** fire for calls from unknown numbers that aren't matched to a lead (there is nothing for a lead-centric automation to act on). Use **Lead > Get Activities** to read the full call log back.
 

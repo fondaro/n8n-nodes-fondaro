@@ -54,7 +54,7 @@ export class Fondaro implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description:
-			"Create, find, assign and update Fondaro CRM leads, deals, tasks, notes and tags, read a lead's activity and call log, and resolve team members by ID",
+			"Create, find, assign and update Fondaro CRM leads, read acquisition details and activity, manage deals, tasks, notes and tags, and resolve team members by ID",
 		defaults: {
 			name: 'Fondaro',
 		},
@@ -147,7 +147,8 @@ export class Fondaro implements INodeType {
 						name: 'Get',
 						value: 'get',
 						action: 'Get a lead',
-						description: 'Get a lead by its ID',
+						description:
+							'Get a lead by its ID, including its Fondaro acquisition origin when available',
 						routing: {
 							request: {
 								method: 'GET',
