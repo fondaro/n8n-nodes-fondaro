@@ -54,7 +54,7 @@ export class Fondaro implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description:
-			"Create, find, assign and update Fondaro CRM leads, read acquisition details and activity, manage deals, tasks, notes and tags, and resolve team members by ID",
+			'Create, find, assign and update Fondaro CRM leads, read acquisition details and activity, manage deals, tasks, notes and tags, and resolve team members by ID',
 		defaults: {
 			name: 'Fondaro',
 		},
@@ -87,13 +87,40 @@ export class Fondaro implements INodeType {
 					{ name: 'Tag', value: 'tag' },
 					{ name: 'Task', value: 'task' },
 					{ name: 'User', value: 'user' },
+					{ name: 'Viewing', value: 'viewing' },
 				],
 				default: 'lead',
 			},
-
-			// ----------------------------------
-			//             Lead
-			// ----------------------------------
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				default: 'getMany',
+				displayOptions: { show: { resource: ['viewing'] } },
+				options: [
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get a viewing',
+						description: 'Read one registered own-listing viewing; requires viewings:read',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/viewings/{{$parameter.viewingId}}',
+							},
+						},
+					},
+					{
+						name: 'Get Many',
+						value: 'getMany',
+						action: 'Get many viewings',
+						description:
+							'Read a filtered page of organization-visible registered own-listing viewings; requires viewings:read',
+						routing: { request: { method: 'GET', url: '/integrations/v1/viewings' } },
+					},
+				],
+			},
 			{
 				displayName: 'Operation',
 				name: 'operation',
@@ -161,11 +188,23 @@ export class Fondaro implements INodeType {
 						value: 'getActivities',
 						action: 'Get activities for a lead',
 						description:
-							"Read a lead's notes, tasks, emails, status changes and call attempts with their outcomes (e.g. no answer, success)",
+							'Read notes, tasks, emails, viewings and calls with recorded owner IDs and outcomes. Continue with nextOffset while hasMore is true.',
 						routing: {
 							request: {
 								method: 'GET',
 								url: '=/integrations/v1/leads/{{$parameter.leadId}}/activities',
+							},
+						},
+					},
+					{
+						name: 'Get Calls',
+						value: 'getCalls',
+						action: 'Get calls for a lead',
+						description: 'Read a page of recorded calls with owner IDs for per-person reporting',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/calls',
 							},
 						},
 					},
@@ -183,6 +222,20 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
+						name: 'Match to Listing',
+						value: 'matchToListing',
+						action: 'Match leads to a listing',
+						description:
+							'Find ranked leads from indexed CRM history relevant to an own or source-qualified listing',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '/integrations/v1/leads/listing-match',
+								body: '={{ { ...($parameter.listingIdentity === "own" ? {propertyListingId: $parameter.matchPropertyListingId} : {listingRef: {source: $parameter.listingSource, id: $parameter.listingSourceId}}), maxResults: $parameter.maxResults } }}',
+							},
+						},
+					},
+					{
 						name: 'Search',
 						value: 'search',
 						action: 'Search leads',
@@ -193,6 +246,14 @@ export class Fondaro implements INodeType {
 								url: '/integrations/v1/leads/search',
 							},
 						},
+					},
+					{
+						name: 'Semantic Search',
+						value: 'semanticSearch',
+						action: 'Search indexed lead history',
+						description:
+							'Find ranked leads and evidence from indexed CRM history; preserve matches, tookMs and reranked',
+						routing: { request: { method: 'POST', url: '/integrations/v1/leads/semantic-search' } },
 					},
 					{
 						name: 'Update Contact',
@@ -221,8 +282,473 @@ export class Fondaro implements INodeType {
 				],
 				default: 'create',
 			},
-
-			// Lead: Create
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['deal'],
+					},
+				},
+				options: [
+					{
+						name: 'Change Stage',
+						value: 'changeStage',
+						action: 'Change the stage of a deal',
+						description: 'Move a deal to a different stage',
+						routing: {
+							request: {
+								method: 'PATCH',
+								url: '=/integrations/v1/deals/{{$parameter.dealId}}/stage',
+							},
+						},
+					},
+					{
+						name: 'Close Lost',
+						value: 'closeLost',
+						action: 'Close a deal as lost',
+						description: 'Mark a deal as lost, optionally with a reason',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/integrations/v1/deals/{{$parameter.dealId}}/lost',
+							},
+						},
+					},
+					{
+						name: 'Close Won',
+						value: 'closeWon',
+						action: 'Close a deal as won',
+						description: 'Mark a deal as won',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/integrations/v1/deals/{{$parameter.dealId}}/won',
+							},
+						},
+					},
+					{
+						name: 'Create',
+						value: 'create',
+						action: 'Create a deal',
+						description:
+							'Create a new deal for a lead. The deal currency is controlled by your organization settings in Fondaro. A 400 response means the organization has no billing currency set.',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '/integrations/v1/deals',
+							},
+						},
+					},
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get a deal',
+						description: 'Get a deal by its ID',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/deals/{{$parameter.dealId}}',
+							},
+						},
+					},
+					{
+						name: 'Get Many',
+						value: 'getMany',
+						action: 'Get many deals for a lead',
+						description: 'Get all deals that belong to a lead',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/deals',
+							},
+						},
+					},
+				],
+				default: 'create',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['note'],
+					},
+				},
+				options: [
+					{
+						name: 'Create',
+						value: 'create',
+						action: 'Create a note on a lead',
+						description: 'Add a note to a lead',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/notes',
+							},
+						},
+					},
+				],
+				default: 'create',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['tag'],
+					},
+				},
+				options: [
+					{
+						name: 'Add',
+						value: 'add',
+						action: 'Add tags to a lead',
+						description:
+							'Add tags to a lead by name or ID. Additive: plain names that do not exist are created automatically; IDs must match existing tags and are never created.',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/tags',
+							},
+						},
+					},
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get tags for a lead',
+						description: "Read the lead's current set of tags",
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/tags',
+							},
+						},
+					},
+				],
+				default: 'add',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['task'],
+					},
+				},
+				options: [
+					{
+						name: 'Create',
+						value: 'create',
+						action: 'Create a task on a lead',
+						description: 'Create a task attached to a lead',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/integrations/v1/leads/{{$parameter.leadId}}/tasks',
+							},
+						},
+					},
+				],
+				default: 'create',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['user'],
+					},
+				},
+				options: [
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get a team user by ID',
+						description:
+							'Resolve a single team member (email, name, role) by their user ID. Use this to turn a user_… value from assigneeIds or lead.assigned into a rep email.',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/integrations/v1/users/{{$parameter.userId}}',
+							},
+						},
+					},
+					{
+						name: 'List',
+						value: 'list',
+						action: 'List team users',
+						description: 'List all team members (email, name, role) in the organization',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '/integrations/v1/users',
+							},
+						},
+					},
+				],
+				default: 'get',
+			},
+			{
+				displayName: 'Additional Fields',
+				name: 'callFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: { show: { resource: ['lead'], operation: ['getCalls'] } },
+				options: [
+					{
+						displayName: 'Limit',
+						name: 'limit',
+						type: 'number',
+						typeOptions: { minValue: 1, maxValue: 100 },
+						default: 50,
+						description: 'Max number of results to return',
+						routing: { send: { type: 'query', property: 'limit' } },
+					},
+					{
+						displayName: 'Offset',
+						name: 'offset',
+						type: 'number',
+						typeOptions: { minValue: 0 },
+						default: 0,
+						description: 'Use the previous response nextOffset while hasMore is true',
+						routing: { send: { type: 'query', property: 'offset' } },
+					},
+				],
+			},
+			{
+				displayName: 'Query',
+				name: 'semanticQuery',
+				type: 'string',
+				required: true,
+				default: '',
+				placeholder: 'e.g. Buyers who mentioned a garden near the beach',
+				description:
+					'Nonempty query up to 500 characters. Searches indexed activity evidence, not every lead field.',
+				displayOptions: { show: { resource: ['lead'], operation: ['semanticSearch'] } },
+				routing: { send: { type: 'body', property: 'query' } },
+			},
+			{
+				displayName: 'Max Results',
+				name: 'maxResults',
+				type: 'number',
+				default: 10,
+				typeOptions: { minValue: 1, maxValue: 30 },
+				description: 'Max number of ranked leads to return; this is not a paginated export',
+				displayOptions: {
+					show: { resource: ['lead'], operation: ['semanticSearch', 'matchToListing'] },
+				},
+				routing: { send: { type: 'body', property: 'maxResults' } },
+			},
+			{
+				displayName: 'Additional Fields',
+				name: 'semanticFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: { show: { resource: ['lead'], operation: ['semanticSearch'] } },
+				options: [
+					{
+						displayName: 'Lead ID',
+						name: 'leadId',
+						type: 'number',
+						default: 1,
+						typeOptions: { minValue: 1 },
+						description: 'Restrict evidence to one lead',
+						routing: { send: { type: 'body', property: 'leadId' } },
+					},
+					{
+						displayName: 'Occurred From',
+						name: 'occurredFrom',
+						type: 'dateTime',
+						default: '',
+						description:
+							'Inclusive source activity occurrence timestamp; not a future visit date mentioned in text',
+						routing: { send: { type: 'body', property: 'occurredFrom' } },
+					},
+					{
+						displayName: 'Occurred To',
+						name: 'occurredTo',
+						type: 'dateTime',
+						default: '',
+						description:
+							'Inclusive source activity occurrence timestamp; must be after Occurred From',
+						routing: { send: { type: 'body', property: 'occurredTo' } },
+					},
+				],
+			},
+			{
+				displayName: 'Listing Identity',
+				name: 'listingIdentity',
+				type: 'options',
+				default: 'own',
+				options: [
+					{ name: 'Own Listing', value: 'own' },
+					{ name: 'Source Reference', value: 'source' },
+				],
+				displayOptions: { show: { resource: ['lead'], operation: ['matchToListing'] } },
+			},
+			{
+				displayName: 'Property Listing ID',
+				name: 'matchPropertyListingId',
+				type: 'string',
+				required: true,
+				default: '',
+				description: 'UUID of an own listing in your organization',
+				displayOptions: {
+					show: { resource: ['lead'], operation: ['matchToListing'], listingIdentity: ['own'] },
+				},
+			},
+			{
+				displayName: 'Listing Source',
+				name: 'listingSource',
+				type: 'string',
+				required: true,
+				default: '',
+				placeholder: 'e.g. resales_online',
+				description: 'Exact connected property source identifier; URLs are not accepted',
+				displayOptions: {
+					show: { resource: ['lead'], operation: ['matchToListing'], listingIdentity: ['source'] },
+				},
+			},
+			{
+				displayName: 'Source Listing ID',
+				name: 'listingSourceId',
+				type: 'string',
+				required: true,
+				default: '',
+				description: 'Exact source-native listing ID',
+				displayOptions: {
+					show: { resource: ['lead'], operation: ['matchToListing'], listingIdentity: ['source'] },
+				},
+			},
+			{
+				displayName: 'Viewing ID',
+				name: 'viewingId',
+				type: 'string',
+				required: true,
+				default: '',
+				description: 'UUID of the registered viewing',
+				displayOptions: { show: { resource: ['viewing'], operation: ['get'] } },
+			},
+			{
+				displayName: 'Filters',
+				name: 'viewingFilters',
+				type: 'collection',
+				placeholder: 'Add Filter',
+				default: {},
+				displayOptions: { show: { resource: ['viewing'], operation: ['getMany'] } },
+				options: [
+					{
+						displayName: 'Agent User ID',
+						name: 'agentUserId',
+						type: 'string',
+						default: '',
+						description: 'Hosting agent Clerk ID; users:read resolves its label',
+						routing: { send: { type: 'query', property: 'agentUserId' } },
+					},
+					{
+						displayName: 'Collaborator Lead ID',
+						name: 'collaboratorLeadId',
+						type: 'number',
+						default: 1,
+						typeOptions: { minValue: 1 },
+						routing: { send: { type: 'query', property: 'collaboratorLeadId' } },
+					},
+					{
+						displayName: 'Deal ID',
+						name: 'dealId',
+						type: 'string',
+						default: '',
+						routing: { send: { type: 'query', property: 'dealId' } },
+					},
+					{
+						displayName: 'From',
+						name: 'from',
+						type: 'dateTime',
+						default: '',
+						description: 'Inclusive viewingAt timestamp',
+						routing: { send: { type: 'query', property: 'from' } },
+					},
+					{
+						displayName: 'Kind',
+						name: 'kind',
+						type: 'options',
+						default: 'in_person',
+						options: [
+							{ name: 'In Person', value: 'in_person' },
+							{ name: 'Virtual', value: 'virtual' },
+						],
+						routing: { send: { type: 'query', property: 'kind' } },
+					},
+					{
+						displayName: 'Lead ID',
+						name: 'leadId',
+						type: 'number',
+						default: 1,
+						typeOptions: { minValue: 1 },
+						routing: { send: { type: 'query', property: 'leadId' } },
+					},
+					{
+						displayName: 'Limit',
+						name: 'limit',
+						type: 'number',
+						default: 50,
+						typeOptions: { minValue: 1, maxValue: 100 },
+						description: 'Max number of results to return',
+						routing: { send: { type: 'query', property: 'limit' } },
+					},
+					{
+						displayName: 'Offset',
+						name: 'offset',
+						type: 'number',
+						default: 0,
+						typeOptions: { minValue: 0 },
+						description:
+							'Use previous nextOffset while hasMore is true. Stable order is viewingAt descending then ID descending.',
+						routing: { send: { type: 'query', property: 'offset' } },
+					},
+					{
+						displayName: 'Property Listing ID',
+						name: 'propertyListingId',
+						type: 'string',
+						default: '',
+						routing: { send: { type: 'query', property: 'propertyListingId' } },
+					},
+					{
+						displayName: 'Status',
+						name: 'status',
+						type: 'options',
+						default: 'scheduled',
+						options: [
+							{ name: 'Cancelled', value: 'cancelled' },
+							{ name: 'Completed', value: 'completed' },
+							{ name: 'No Show', value: 'no_show' },
+							{ name: 'Scheduled', value: 'scheduled' },
+						],
+						routing: { send: { type: 'query', property: 'status' } },
+					},
+					{
+						displayName: 'To',
+						name: 'to',
+						type: 'dateTime',
+						default: '',
+						description: 'Exclusive viewingAt timestamp; must be after From',
+						routing: { send: { type: 'query', property: 'to' } },
+					},
+				],
+			},
 			{
 				displayName: 'First Name',
 				name: 'firstName',
@@ -428,8 +954,6 @@ export class Fondaro implements INodeType {
 					},
 				],
 			},
-
-			// Lead: Find
 			{
 				displayName: 'Find By',
 				name: 'findBy',
@@ -513,8 +1037,6 @@ export class Fondaro implements INodeType {
 					},
 				},
 			},
-
-			// Lead: Add Assignees / Get / Get Activities / Update Contact / Update Status
 			{
 				displayName: 'Lead ID',
 				name: 'leadId',
@@ -524,7 +1046,14 @@ export class Fondaro implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['lead'],
-						operation: ['addAssignees', 'get', 'getActivities', 'updateContact', 'updateStatus'],
+						operation: [
+							'addAssignees',
+							'get',
+							'getActivities',
+							'getCalls',
+							'updateContact',
+							'updateStatus',
+						],
 					},
 				},
 				description: 'Numeric ID of the lead',
@@ -553,8 +1082,6 @@ export class Fondaro implements INodeType {
 					},
 				},
 			},
-
-			// Lead: Get Activities
 			{
 				displayName: 'Additional Fields',
 				name: 'additionalFields',
@@ -608,7 +1135,7 @@ export class Fondaro implements INodeType {
 						default: '',
 						placeholder: 'call,note,status-change',
 						description:
-							'Comma-separated list to return only certain activity types. Valid values: call, note, task-created, task-completed, email, status-change, deal-stage-change, deal-won, deal-lost, assignee-change, lead-created. Leave empty for all. Use "call" to fetch just the call log.',
+							'Comma-separated list to return only certain activity types. Valid values: call, note, task-created, task-completed, email, status-change, deal-stage-change, deal-won, deal-lost, assignee-change, lead-created, document-attached, viewing. Leave empty for all. Use "call" to fetch just the call log.',
 						routing: {
 							send: {
 								type: 'query',
@@ -618,8 +1145,6 @@ export class Fondaro implements INodeType {
 					},
 				],
 			},
-
-			// Lead: Get Many
 			{
 				displayName: 'Additional Fields',
 				name: 'additionalFields',
@@ -738,8 +1263,6 @@ export class Fondaro implements INodeType {
 					},
 				],
 			},
-
-			// Lead: Search
 			{
 				displayName: 'Query',
 				name: 'query',
@@ -807,8 +1330,6 @@ export class Fondaro implements INodeType {
 					},
 				],
 			},
-
-			// Lead: Update Contact
 			{
 				displayName: 'Update Fields',
 				name: 'updateFields',
@@ -908,8 +1429,6 @@ export class Fondaro implements INodeType {
 					},
 				],
 			},
-
-			// Lead: Update Status
 			{
 				displayName: 'CRM Status',
 				name: 'crmStatus',
@@ -931,99 +1450,6 @@ export class Fondaro implements INodeType {
 					},
 				},
 			},
-
-			// ----------------------------------
-			//             Deal
-			// ----------------------------------
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: {
-					show: {
-						resource: ['deal'],
-					},
-				},
-				options: [
-					{
-						name: 'Change Stage',
-						value: 'changeStage',
-						action: 'Change the stage of a deal',
-						description: 'Move a deal to a different stage',
-						routing: {
-							request: {
-								method: 'PATCH',
-								url: '=/integrations/v1/deals/{{$parameter.dealId}}/stage',
-							},
-						},
-					},
-					{
-						name: 'Close Lost',
-						value: 'closeLost',
-						action: 'Close a deal as lost',
-						description: 'Mark a deal as lost, optionally with a reason',
-						routing: {
-							request: {
-								method: 'POST',
-								url: '=/integrations/v1/deals/{{$parameter.dealId}}/lost',
-							},
-						},
-					},
-					{
-						name: 'Close Won',
-						value: 'closeWon',
-						action: 'Close a deal as won',
-						description: 'Mark a deal as won',
-						routing: {
-							request: {
-								method: 'POST',
-								url: '=/integrations/v1/deals/{{$parameter.dealId}}/won',
-							},
-						},
-					},
-					{
-						name: 'Create',
-						value: 'create',
-						action: 'Create a deal',
-						description:
-							'Create a new deal for a lead. The deal currency is controlled by your organization settings in Fondaro. A 400 response means the organization has no billing currency set.',
-						routing: {
-							request: {
-								method: 'POST',
-								url: '/integrations/v1/deals',
-							},
-						},
-					},
-					{
-						name: 'Get',
-						value: 'get',
-						action: 'Get a deal',
-						description: 'Get a deal by its ID',
-						routing: {
-							request: {
-								method: 'GET',
-								url: '=/integrations/v1/deals/{{$parameter.dealId}}',
-							},
-						},
-					},
-					{
-						name: 'Get Many',
-						value: 'getMany',
-						action: 'Get many deals for a lead',
-						description: 'Get all deals that belong to a lead',
-						routing: {
-							request: {
-								method: 'GET',
-								url: '=/integrations/v1/leads/{{$parameter.leadId}}/deals',
-							},
-						},
-					},
-				],
-				default: 'create',
-			},
-
-			// Deal: Change Stage / Get
 			{
 				displayName: 'Deal ID',
 				name: 'dealId',
@@ -1059,8 +1485,6 @@ export class Fondaro implements INodeType {
 					},
 				},
 			},
-
-			// Deal: Close Lost
 			{
 				displayName: 'Lost Reason',
 				name: 'lostReason',
@@ -1080,8 +1504,6 @@ export class Fondaro implements INodeType {
 					},
 				},
 			},
-
-			// Deal: Create
 			{
 				displayName: 'Lead ID',
 				name: 'leadId',
@@ -1195,8 +1617,6 @@ export class Fondaro implements INodeType {
 					},
 				],
 			},
-
-			// Deal: Get Many
 			{
 				displayName: 'Lead ID',
 				name: 'leadId',
@@ -1210,36 +1630,6 @@ export class Fondaro implements INodeType {
 					},
 				},
 				description: 'Numeric ID of the lead to list deals for',
-			},
-
-			// ----------------------------------
-			//             Note
-			// ----------------------------------
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: {
-					show: {
-						resource: ['note'],
-					},
-				},
-				options: [
-					{
-						name: 'Create',
-						value: 'create',
-						action: 'Create a note on a lead',
-						description: 'Add a note to a lead',
-						routing: {
-							request: {
-								method: 'POST',
-								url: '=/integrations/v1/leads/{{$parameter.leadId}}/notes',
-							},
-						},
-					},
-				],
-				default: 'create',
 			},
 			{
 				displayName: 'Lead ID',
@@ -1278,49 +1668,6 @@ export class Fondaro implements INodeType {
 					},
 				},
 			},
-
-			// ----------------------------------
-			//             Tag
-			// ----------------------------------
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: {
-					show: {
-						resource: ['tag'],
-					},
-				},
-				options: [
-					{
-						name: 'Add',
-						value: 'add',
-						action: 'Add tags to a lead',
-						description:
-							'Add tags to a lead by name or ID. Additive: plain names that do not exist are created automatically; IDs must match existing tags and are never created.',
-						routing: {
-							request: {
-								method: 'POST',
-								url: '=/integrations/v1/leads/{{$parameter.leadId}}/tags',
-							},
-						},
-					},
-					{
-						name: 'Get',
-						value: 'get',
-						action: 'Get tags for a lead',
-						description: "Read the lead's current set of tags",
-						routing: {
-							request: {
-								method: 'GET',
-								url: '=/integrations/v1/leads/{{$parameter.leadId}}/tags',
-							},
-						},
-					},
-				],
-				default: 'add',
-			},
 			{
 				displayName: 'Lead ID',
 				name: 'leadId',
@@ -1358,36 +1705,6 @@ export class Fondaro implements INodeType {
 						property: 'tags',
 					},
 				},
-			},
-
-			// ----------------------------------
-			//             Task
-			// ----------------------------------
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: {
-					show: {
-						resource: ['task'],
-					},
-				},
-				options: [
-					{
-						name: 'Create',
-						value: 'create',
-						action: 'Create a task on a lead',
-						description: 'Create a task attached to a lead',
-						routing: {
-							request: {
-								method: 'POST',
-								url: '=/integrations/v1/leads/{{$parameter.leadId}}/tasks',
-							},
-						},
-					},
-				],
-				default: 'create',
 			},
 			{
 				displayName: 'Lead ID',
@@ -1483,49 +1800,6 @@ export class Fondaro implements INodeType {
 						},
 					},
 				],
-			},
-
-			// ----------------------------------
-			//             User
-			// ----------------------------------
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: {
-					show: {
-						resource: ['user'],
-					},
-				},
-				options: [
-					{
-						name: 'Get',
-						value: 'get',
-						action: 'Get a team user by ID',
-						description:
-							'Resolve a single team member (email, name, role) by their user ID. Use this to turn a user_… value from assigneeIds or lead.assigned into a rep email.',
-						routing: {
-							request: {
-								method: 'GET',
-								url: '=/integrations/v1/users/{{$parameter.userId}}',
-							},
-						},
-					},
-					{
-						name: 'List',
-						value: 'list',
-						action: 'List team users',
-						description: 'List all team members (email, name, role) in the organization',
-						routing: {
-							request: {
-								method: 'GET',
-								url: '/integrations/v1/users',
-							},
-						},
-					},
-				],
-				default: 'get',
 			},
 			{
 				displayName: 'User ID',
