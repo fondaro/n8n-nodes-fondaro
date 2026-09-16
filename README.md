@@ -39,7 +39,7 @@ For containerized or declarative setups you can have n8n install the package on 
 
 ```bash
 N8N_COMMUNITY_PACKAGES_MANAGED_BY_ENV=true
-N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.7.0"}]'
+N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.8.0"}]'
 ```
 
 ## Credentials
@@ -57,7 +57,7 @@ N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.7.0"}]'
 3. Leave the **Base URL** at `https://api.fondaro.com` unless Fondaro support has told you otherwise.
 4. Save. n8n tests the credential against the Fondaro `whoami` endpoint and shows your organization name on success.
 
-An OAuth2 credential (**Fondaro OAuth2 API**) is also included for setups that prefer the OAuth2 authorization code flow, for example on n8n Cloud. The API key credential is the recommended path.
+The action node uses **Fondaro API** integration keys. An OAuth2 credential class is included in the package, but the action node does not select it. Public MCP OAuth is a separate authentication plane.
 
 ### Key rotation
 
@@ -72,6 +72,11 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 | Lead | Find | Find one lead by email, phone or external ID |
 | Lead | Get | Get a lead by its numeric ID |
 | Lead | Get Activities | Read a lead's activity feed — notes, tasks, emails, status changes and call attempts with their outcomes |
+| Lead | Get Calls | Read a paginated call summary collection with recorded owner IDs |
+| Lead | Semantic Search | Discover ranked leads with indexed activity evidence and reranking status |
+| Lead | Match to Listing | Match indexed CRM evidence to an own-listing UUID or source-qualified listing reference |
+| Viewing | Get | Read one registered own-listing viewing with full authorized notes |
+| Viewing | Get Many | Read a filtered viewing page with bounded notes previews |
 | Lead | Get Many | List leads, filterable by assignee, unassigned state, tags (names or IDs, OR semantics) and CRM status, with limit and offset |
 | Lead | Search | Free text search across leads, with limit and offset |
 | Lead | Update Contact | Update name, email, phone, lead type or language |
@@ -183,10 +188,10 @@ Deal currency is controlled by your organization settings in Fondaro; the node n
 
 ### Reading activity and call outcomes
 
-**Lead > Get Activities** returns a lead's unified, paginated activity feed: notes, tasks, emails, status changes, deal-stage changes, assignee changes and **call attempts with their outcomes**. Each entry is `{ type, occurredAt, …type-specific fields }`; the response is `{ entries, total, hasMore }`.
+**Lead > Get Activities** returns a lead's unified, paginated activity feed: notes, tasks, emails, status changes, deal-stage changes, assignee changes and **call attempts with their outcomes**. Each entry is `{ type, occurredAt, …type-specific fields }`; the response is `{ entries, total, totalIsExact, hasMore, nextOffset }`. Continue with the returned `nextOffset` while `hasMore` is true. `limit` is an upper bound. General timeline totals may be a lower bound; never use them for KPI counts.
 
 - Optional **Limit** (1–100, default 20) and **Offset** for paging.
-- Optional **Types** — a comma-separated filter, e.g. `call` to fetch only the call log, or `call,note,status-change`. Valid values: `call`, `note`, `task-created`, `task-completed`, `email`, `status-change`, `deal-stage-change`, `deal-won`, `deal-lost`, `assignee-change`, `lead-created`.
+- Optional **Types** — a comma-separated filter, e.g. `call` to fetch only the call log, or `call,note,status-change`. Valid values: `call`, `note`, `task-created`, `task-completed`, `email`, `status-change`, `deal-stage-change`, `deal-won`, `deal-lost`, `assignee-change`, `lead-created`, `document-attached`, `viewing`.
 
 A call entry looks like:
 
@@ -196,6 +201,7 @@ A call entry looks like:
   "occurredAt": "2026-06-15T10:00:00.000Z",
   "call": {
     "id": "…",
+    "ownerId": "user_recorded_rep",
     "direction": "outbound",
     "outcome": "no_answer",
     "status": "no-answer",
@@ -317,13 +323,14 @@ So you can route without a follow-up lookup, the lead and deal events carry the 
 
 > Ordering note: for leads created through this node, auto-routing assigns the owner *after* the create commits, so `lead.created` may carry an empty `assigneeIds` for those leads.
 
-**`call.logged`** fires the first time a call reaches a terminal state, for both outbound and inbound calls attached to a lead. The `data` carries the outcome but no PII:
+**`call.logged`** fires the first time a call reaches a terminal state, for both outbound and inbound calls attached to a lead. The `data` carries the outcome and recorded internal owner ID:
 
 ```json
 {
   "organizationId": "…",
   "leadId": 123,
   "callId": "…",
+  "ownerId": "user_recorded_rep",
   "direction": "outbound",
   "outcome": "no_answer",
   "status": "no-answer",
@@ -344,6 +351,7 @@ It does **not** fire for calls from unknown numbers that aren't matched to a lea
   "organizationId": "…",
   "leadId": 123,
   "callId": "…",
+  "ownerId": "user_recorded_rep",
   "direction": "outbound",
   "occurredAt": "2026-06-15T10:05:00.000Z",
   "analysis": {
@@ -359,6 +367,22 @@ It does **not** fire for calls from unknown numbers that aren't matched to a lea
 ```
 
 > **Content-bearing event — opt in deliberately.** Unlike every other event, `call.analyzed` carries an AI-generated `summary` (free text) that **may mention names, numbers or other details spoken on the call**. It carries no transcript or recording URL. It only arrives if you subscribe to **Call Analyzed**; it never rides the other events.
+
+### Caller attribution, viewing reads, and semantic workflows
+
+`call.ownerId` on activities and `ownerId` on direct calls, `call.logged`, and `call.analyzed` identify the recorded internal owner. For outbound calls this is the recorded calling rep. For inbound calls it is the recorded internal owner when present, not the external caller. Missing, blank, or system ownership is `null`. The current lead assignee and a shared phone number never replace the recorded owner. A departed user's historical ID remains attached even if **User > Get** cannot resolve a label.
+
+For per-person reporting, run **Lead > Get Activities** with Types `call`, or **Lead > Get Calls**, then join `call.ownerId` or `ownerId` against **User > Get Many**, or call **User > Get**. Calls require `leads:read`; labels require `users:read`. **Get Calls** returns `{ calls, total, hasMore, nextOffset }` (default 20, maximum 100). Keep the envelope and loop using `nextOffset`; changing data can shift offsets, so multiple requests are not a snapshot.
+
+**Viewing > Get / Get Many** require the additive `viewings:read` permission. Existing keys do not gain this permission automatically; explicitly grant it on a new key. These read registered own-listing viewings only. All collection filters intersect: property listing UUID, lead ID, collaborator lead ID, hosting agent Clerk ID, deal UUID, status, kind, and viewing time. **From** includes its `viewingAt` timestamp; **To** excludes it. Sort is `viewingAt DESC, id DESC`. Collections return `{ viewings, total, hasMore, nextOffset }`, default 20 and maximum 100, with notes previews and `notesTruncated`. **Get** reads full authorized notes. `agentUserId` is the host and `createdBy` is the registering user; use `users:read` to resolve labels. Relationship IDs do not grant lead contact access. No viewing write operations or viewing webhooks are provided.
+
+**Lead > Search** keeps its existing name/email/contact search behavior and `search` operation value. **Semantic Search** and **Match to Listing** use existing indexed CRM history and require `leads:read`. They return the complete `{ matches, tookMs, reranked }` envelope, with ranked evidence snippets and source IDs. Inspect `reranked` before splitting `matches`; failed reranking returns fused candidates with `reranked: false`, while embedding failure is an error. There is no Return All or pagination: maximum results is 1–30, default 10. A rate limit can return 429 with `Retry-After`.
+
+The semantic corpus includes eligible notes, call transcripts/summaries, human-written emails and lead-scoped Assistant memory over an asynchronous 24-month indexing window. It does not index every lead field or every viewing. Match/source counts describe matching indexed evidence, not total calls or viewings. An empty result means no relevant indexed history was found; it does not prove no such lead exists. **Occurred From / To** filter the source activity occurrence time (inclusive bounds), not a future trip date mentioned in text. Supply valid ISO timestamps and an ordered range.
+
+Example: **Semantic Search** for “buyers who mentioned a garden near the beach” → inspect evidence and `reranked` → **Lead > Get** each `leadId` → **Viewing > Get Many** filtered to that lead → branch on recorded scheduled/completed viewings. For a listing-first workflow, **Match to Listing** accepts exactly one identity: an own-listing UUID or a connected source identifier plus its source-native ID. It never accepts a URL, and third-party listing text is a query rather than newly indexed corpus.
+
+Version 1.8.0 adds these operation definitions. Deploy the matching API routes before publishing/installing this version; local build and routing tests do not verify a deployed API or package publication.
 
 ### Signature verification
 
