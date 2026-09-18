@@ -48,7 +48,6 @@ export class FondaroPollingTrigger implements INodeType {
 		defaults: {
 			name: 'Fondaro Polling Trigger',
 		},
-		usableAsTool: true,
 		polling: true,
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],

@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-fondaro",
-	"version": "1.8.0",
+	"version": "1.8.1",
 	"description": "n8n community node for Fondaro CRM: manage leads, deals, tasks, notes and tags, report calls by recorded owner, read registered own-listing viewings, discover leads through semantic CRM history search and listing matching, and trigger signed CRM webhooks.",
 	"license": "MIT",
 	"homepage": "https://fondaro.com",
@@ -54,9 +54,8 @@
 			"dist/nodes/FondaroPollingTrigger/FondaroPollingTrigger.node.js"
 		]
 	},
-	"dependencies": {},
 	"devDependencies": {
-		"@n8n/node-cli": "^0.41.2",
+		"@n8n/node-cli": "^0.48.5",
 		"eslint": "9.29.0",
 		"n8n-workflow": "^2.16.0",
 		"prettier": "3.6.2",
