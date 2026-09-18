@@ -39,7 +39,7 @@ For containerized or declarative setups you can have n8n install the package on 
 
 ```bash
 N8N_COMMUNITY_PACKAGES_MANAGED_BY_ENV=true
-N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.8.0"}]'
+N8N_COMMUNITY_PACKAGES='[{"name":"n8n-nodes-fondaro","version":"1.8.1"}]'
 ```
 
 ## Credentials

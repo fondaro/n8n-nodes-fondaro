@@ -59,7 +59,6 @@ export class FondaroTrigger implements INodeType {
 		defaults: {
 			name: 'Fondaro Trigger',
 		},
-		usableAsTool: true,
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [
