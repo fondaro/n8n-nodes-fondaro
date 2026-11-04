@@ -1,6 +1,6 @@
 # n8n-nodes-fondaro
 
-This is an n8n community node package for [Fondaro](https://fondaro.com), a network and a CRM for real estate agencies. It works with the CRM: create, assign and update leads, deals, tasks, notes and tags, read the ad, property references and form answers behind Fondaro-generated leads, list leads by assignee, unassigned state, tag or CRM status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in your Fondaro CRM: new leads, status changes, logged calls, and deal and task events.
+This is an n8n community node package for [Fondaro](https://fondaro.com), the Fondaro Network and the everyday tools of real estate agencies. It lets you create, assign and update leads, deals, tasks, notes and tags, read the ad, property references and form answers behind Fondaro-generated leads, list leads by assignee, unassigned state, tag or status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in Fondaro: new leads, status changes, logged calls, and deal and task events.
 
 The package ships three nodes:
 

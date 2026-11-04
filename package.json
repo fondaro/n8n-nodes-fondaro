@@ -1,7 +1,7 @@
 {
 	"name": "n8n-nodes-fondaro",
 	"version": "1.8.1",
-	"description": "n8n community node for Fondaro, a network and a CRM for real estate agencies: manage leads, deals, tasks, notes and tags, report calls by recorded owner, read registered own-listing viewings, find leads by meaning and by listing, and trigger signed CRM webhooks.",
+	"description": "n8n community node for Fondaro, the Fondaro Network and the everyday tools of real estate agencies: manage leads, deals, tasks, notes and tags, report calls by recorded owner, read registered own-listing viewings, find leads by meaning and by listing, and trigger signed webhooks.",
 	"license": "MIT",
 	"homepage": "https://fondaro.com",
 	"author": {
