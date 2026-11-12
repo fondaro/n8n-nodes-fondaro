@@ -79,7 +79,7 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 | Viewing | Get Many | Read a filtered viewing page with bounded notes previews |
 | Lead | Get Many | List leads, filterable by assignee, unassigned state, tags (names or IDs, OR semantics) and CRM status, with limit and offset |
 | Lead | Search | Free text search across leads, with limit and offset |
-| Lead | Update Contact | Update name, email, phone, lead type or language |
+| Lead | Update Contact | Update name, email, phone, company name, lead type or language |
 | Lead | Update Status | Set the CRM status |
 | Deal | Create | Create a deal for a lead |
 | Deal | Change Stage | Move a deal to a different stage |
@@ -177,7 +177,7 @@ Use `origin.properties[].reference` for the property or ad reference and `origin
 Tag and assignee dropdowns load live from your organization. Since 1.4.0 the tag dropdowns bind stable tag **IDs** (shown by name), so a picked tag keeps working after it is renamed or merged in the dashboard; workflows saved with older versions hold names, which the API still accepts. In the `tags` field, a plain name that does not exist is created automatically, while a UUID-shaped entry must match an existing tag and is never created. The status and stage dropdowns are fixed lists, kept in sync with Fondaro:
 
 - CRM status: `lead`, `potential`, `bad_timing`, `client`, `unqualified`
-- Lead type: `buyer`, `seller`
+- Lead type: `buyer`, `seller`, `tenant`, `collaborator`
 - Deal stage: `qualified`, `viewing`, `offer`, `reserved`, `under_contract`
 
 Deal currency is controlled by your organization settings in Fondaro; the node never sends a currency. A 400 on deal creation means the organization has no billing currency set yet.
