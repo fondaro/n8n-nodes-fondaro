@@ -1,6 +1,6 @@
 # n8n-nodes-fondaro
 
-This is an n8n community node package for [Fondaro](https://fondaro.com), the real estate CRM. It lets you create, assign and update leads, deals, tasks, notes and tags, read the ad, property references and form answers behind Fondaro-generated leads, list leads by assignee, unassigned state, tag or CRM status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in your Fondaro CRM — new leads, status changes, logged calls, and deal and task events.
+This is an n8n community node package for [Fondaro](https://fondaro.com), the Fondaro Network and the everyday tools of real estate agencies. It lets you create, assign and update leads, deals, tasks, notes and tags, read the ad, property references and form answers behind Fondaro-generated leads, list leads by assignee, unassigned state, tag or status, read a lead's activity and call log (with call outcomes) from your n8n workflows, and start workflows the moment things happen in Fondaro: new leads, status changes, logged calls, and deal and task events.
 
 The package ships three nodes:
 
@@ -71,7 +71,7 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 | Lead | Create | Create a new lead |
 | Lead | Find | Find one lead by email, phone or external ID |
 | Lead | Get | Get a lead by its numeric ID |
-| Lead | Get Activities | Read a lead's activity feed — notes, tasks, emails, status changes and call attempts with their outcomes |
+| Lead | Get Activities | Read a lead's activity feed: notes, tasks, emails, status changes and call attempts with their outcomes |
 | Lead | Get Calls | Read a paginated call summary collection with recorded owner IDs |
 | Lead | Semantic Search | Discover ranked leads with indexed activity evidence and reranking status |
 | Lead | Match to Listing | Match indexed CRM evidence to an own-listing UUID or source-qualified listing reference |
@@ -94,7 +94,7 @@ To rotate a key: generate a new key in the Fondaro dashboard, swap it into the n
 | User | List | List your team members with their email, name and role |
 | User | Get | Resolve one team member (email, name, role) by their `user_…` ID |
 
-Lead IDs are numbers. Deal, task, note and subscription IDs are UUID strings. Team-member IDs are Clerk `user_…` strings — the same values you see in a lead's `assigneeIds` and on the `lead.assigned` event.
+Lead IDs are numbers. Deal, task, note and subscription IDs are UUID strings. Team-member IDs are Clerk `user_…` strings: the same values you see in a lead's `assigneeIds` and on the `lead.assigned` event.
 
 The node can also be used as a tool by n8n AI agents.
 
@@ -110,13 +110,13 @@ The **Lead > Find** operation returns only leads that have been purchased into y
 
 **Lead > Get Many** lists your CRM working set, newest first by purchase date, and answers "which leads belong to this rep, are unassigned, or carry tag X today" in one call. All filters live under **Additional Fields**:
 
-- **Assignee** — return leads assigned to one selected team member.
-- **Unassigned** — return only leads whose assignee set is empty. Assignee and Unassigned are mutually exclusive.
-- **Tags** — comma-separated tag names or IDs, OR semantics: a lead matches if it carries *any* of the tags. Names match case-insensitively; an entry that does not resolve to an existing tag fails the whole call with a 404 naming the entry, so a typo never silently returns an empty set. Archived tags still resolve. A tag name that itself contains a comma can only be filtered by its ID.
-- **CRM Status** — return only leads with that status.
+- **Assignee**: return leads assigned to one selected team member.
+- **Unassigned**: return only leads whose assignee set is empty. Assignee and Unassigned are mutually exclusive.
+- **Tags**: comma-separated tag names or IDs, with OR semantics (a lead matches if it carries *any* of the tags). Names match case-insensitively; an entry that does not resolve to an existing tag fails the whole call with a 404 naming the entry, so a typo never silently returns an empty set. Archived tags still resolve. A tag name that itself contains a comma can only be filtered by its ID.
+- **CRM Status**: return only leads with that status.
 - **Limit** (1–100, default 50) and **Offset** for paging. The response is `{ leads, total, hasMore }`.
 
-**Every lead payload now carries `tags[]`.** Server-side as of the same release, every lead returned by Create, Find, Get, Get Many, Search and the polling trigger includes its tags as `[{ id, name, color, archivedAt }]` — always present, `[]` when untagged. **Tag > Get** returns the same shape. For real-time tag automations prefer the **Lead Tagged / Lead Untagged** triggers; use Get Many as a periodic reconcile so a missed webhook delivery never strands a lead.
+**Every lead payload now carries `tags[]`.** Server-side as of the same release, every lead returned by Create, Find, Get, Get Many, Search and the polling trigger includes its tags as `[{ id, name, color, archivedAt }]`: always present, `[]` when untagged. **Tag > Get** returns the same shape. For real-time tag automations prefer the **Lead Tagged / Lead Untagged** triggers; use Get Many as a periodic reconcile so a missed webhook delivery never strands a lead.
 
 ### Reading the ad, property and form answers behind a lead
 
@@ -182,16 +182,16 @@ Tag and assignee dropdowns load live from your organization. Since 1.4.0 the tag
 
 Deal currency is controlled by your organization settings in Fondaro; the node never sends a currency. A 400 on deal creation means the organization has no billing currency set yet.
 
-**`lead` is the entry status; the dashboard labels it "New".** They are the same value — the dropdown shows **New**, the API value is `lead`.
+**`lead` is the entry status; the dashboard labels it "New".** They are the same value: the dropdown shows **New**, the API value is `lead`.
 
-**There is no `unassigned` status.** A lead is *unassigned* when its `assigneeIds` is empty — it still has a status (usually `lead`/New). Use the **Unassigned** Get Many filter to list that queue, and read assignment from `assigneeIds`, not from `status`. The `lead.created`, `lead.statusChanged` and `lead.assigned` events all carry `assigneeIds`, so you can compute "unassigned" directly with `data.assigneeIds.length === 0`, no extra lookup.
+**There is no `unassigned` status.** A lead is *unassigned* when its `assigneeIds` is empty: it still has a status (usually `lead`/New). Use the **Unassigned** Get Many filter to list that queue, and read assignment from `assigneeIds`, not from `status`. The `lead.created`, `lead.statusChanged` and `lead.assigned` events all carry `assigneeIds`, so you can compute "unassigned" directly with `data.assigneeIds.length === 0`, no extra lookup.
 
 ### Reading activity and call outcomes
 
 **Lead > Get Activities** returns a lead's unified, paginated activity feed: notes, tasks, emails, status changes, deal-stage changes, assignee changes and **call attempts with their outcomes**. Each entry is `{ type, occurredAt, …type-specific fields }`; the response is `{ entries, total, totalIsExact, hasMore, nextOffset }`. Continue with the returned `nextOffset` while `hasMore` is true. `limit` is an upper bound. General timeline totals may be a lower bound; never use them for KPI counts.
 
 - Optional **Limit** (1–100, default 20) and **Offset** for paging.
-- Optional **Types** — a comma-separated filter, e.g. `call` to fetch only the call log, or `call,note,status-change`. Valid values: `call`, `note`, `task-created`, `task-completed`, `email`, `status-change`, `deal-stage-change`, `deal-won`, `deal-lost`, `assignee-change`, `lead-created`, `document-attached`, `viewing`.
+- Optional **Types**: a comma-separated filter, e.g. `call` to fetch only the call log, or `call,note,status-change`. Valid values: `call`, `note`, `task-created`, `task-completed`, `email`, `status-change`, `deal-stage-change`, `deal-won`, `deal-lost`, `assignee-change`, `lead-created`, `document-attached`, `viewing`.
 
 A call entry looks like:
 
@@ -260,7 +260,7 @@ To alert the rep a lead was just assigned to:
 2. **Fondaro → User → Get** with `User ID` set to `{{$json["data"]["added"][0]}}` (or `{{$json["data"]["assigneeIds"][0]}}`).
 3. Send the notification to the resolved `email`.
 
-No hardcoded name→ID map — new hires resolve automatically.
+No hardcoded name→ID map: new hires resolve automatically.
 
 ## The Fondaro Trigger node (webhooks)
 
@@ -303,11 +303,11 @@ So you can route without a follow-up lookup, the lead and deal events carry the 
 | `lead.tagged` | `tagId`, `changedBy` (one delivery per tag added) |
 | `lead.untagged` | `tagId`, `changedBy` (one delivery per tag removed) |
 
-**Resolving a `tagId` to its name:** call `GET /integrations/v1/tags/{tagId}` (scope `tags:read`) with an HTTP Request node — it returns `{ id, name, color, archivedAt }` and works for archived tags. For `lead.tagged` events the Fondaro node's **Tag > Get** on the lead also works; for `lead.untagged` the id lookup is the only way, since the tag is no longer in the lead's set.
+**Resolving a `tagId` to its name:** call `GET /integrations/v1/tags/{tagId}` (scope `tags:read`) with an HTTP Request node: it returns `{ id, name, color, archivedAt }` and works for archived tags. For `lead.tagged` events the Fondaro node's **Tag > Get** on the lead also works; for `lead.untagged` the id lookup is the only way, since the tag is no longer in the lead's set.
 
-**Filtering tag events:** the trigger node has an optional **Only for Tags** field (shown when Lead Tagged/Untagged is selected). Non-matching deliveries are acknowledged and dropped inside the node, by stable tag ID, so the filter survives renames. Note that merging tags in the dashboard deliberately fires **no** `lead.tagged` events for the re-pointed leads — a merge is a catalogue correction, not thousands of lead events.
+**Filtering tag events:** the trigger node has an optional **Only for Tags** field (shown when Lead Tagged/Untagged is selected). Non-matching deliveries are acknowledged and dropped inside the node, by stable tag ID, so the filter survives renames. Note that merging tags in the dashboard deliberately fires **no** `lead.tagged` events for the re-pointed leads: a merge is a catalogue correction, not thousands of lead events.
 
-`value` is the deal's own amount (the sale figure you entered) in your organization's currency — not Fondaro's lead pricing, which is never emitted. `status` is the CRM status (`lead`/New, `potential`, …); `assigneeIds` is the set of `user_…` IDs the lead is assigned to (empty ⇒ unassigned). A `lead.assigned` delivery, for example:
+`value` is the deal's own amount (the sale figure you entered) in your organization's currency, not Fondaro's lead pricing, which is never emitted. `status` is the CRM status (`lead`/New, `potential`, …); `assigneeIds` is the set of `user_…` IDs the lead is assigned to (empty ⇒ unassigned). A `lead.assigned` delivery, for example:
 
 ```json
 {
@@ -366,7 +366,7 @@ It does **not** fire for calls from unknown numbers that aren't matched to a lea
 }
 ```
 
-> **Content-bearing event — opt in deliberately.** Unlike every other event, `call.analyzed` carries an AI-generated `summary` (free text) that **may mention names, numbers or other details spoken on the call**. It carries no transcript or recording URL. It only arrives if you subscribe to **Call Analyzed**; it never rides the other events.
+> **Content-bearing event: opt in deliberately.** Unlike every other event, `call.analyzed` carries an AI-generated `summary` (free text) that **may mention names, numbers or other details spoken on the call**. It carries no transcript or recording URL. It only arrives if you subscribe to **Call Analyzed**; it never rides the other events.
 
 ### Caller attribution, viewing reads, and semantic workflows
 
