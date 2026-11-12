@@ -17,7 +17,9 @@ const CRM_STATUS_OPTIONS: INodePropertyOptions[] = [
 
 const LEAD_TYPE_OPTIONS: INodePropertyOptions[] = [
 	{ name: 'Buyer', value: 'buyer' },
+	{ name: 'Collaborator', value: 'collaborator' },
 	{ name: 'Seller', value: 'seller' },
+	{ name: 'Tenant', value: 'tenant' },
 ];
 
 const DEAL_STAGE_OPTIONS: INodePropertyOptions[] = [
@@ -821,6 +823,19 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
+						displayName: 'Company Name',
+						name: 'companyName',
+						type: 'string',
+						default: '',
+						description: 'The agency or firm the lead belongs to, mostly for collaborator leads',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'companyName',
+							},
+						},
+					},
+					{
 						displayName: 'CRM Status',
 						name: 'crmStatus',
 						type: 'options',
@@ -881,7 +896,8 @@ export class Fondaro implements INodeType {
 						type: 'options',
 						options: LEAD_TYPE_OPTIONS,
 						default: 'buyer',
-						description: 'Whether the lead is a buyer or a seller',
+						description:
+							'Whether the lead is a buyer, a seller, a tenant or a collaborator (a partner agency, lawyer or other professional contact)',
 						routing: {
 							send: {
 								type: 'body',
@@ -1344,6 +1360,19 @@ export class Fondaro implements INodeType {
 				},
 				options: [
 					{
+						displayName: 'Company Name',
+						name: 'companyName',
+						type: 'string',
+						default: '',
+						description: 'New agency or firm the lead belongs to, mostly for collaborator leads',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'companyName',
+							},
+						},
+					},
+					{
 						displayName: 'Email',
 						name: 'email',
 						type: 'string',
@@ -1404,7 +1433,8 @@ export class Fondaro implements INodeType {
 						type: 'options',
 						options: LEAD_TYPE_OPTIONS,
 						default: 'buyer',
-						description: 'Whether the lead is a buyer or a seller',
+						description:
+							'Whether the lead is a buyer, a seller, a tenant or a collaborator (a partner agency, lawyer or other professional contact)',
 						routing: {
 							send: {
 								type: 'body',
