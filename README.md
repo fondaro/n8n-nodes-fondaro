@@ -174,6 +174,8 @@ Use `origin.properties[].reference` for the property or ad reference and `origin
 
 ### Dropdown values
 
+**Since 1.10.0** every field that takes a fixed set of values has a dropdown: Language (your leads' languages first, then the common ones; an expression with your own BCP-47 tag still works), Teams (everyone in a team is added) on Create Lead, Add Assignees, Create Deal and Create Task, and the Listing Source of Match to Listing. Get Many Leads filters by Source, Lead Type and Language, and Update Lead sets Source and External ID. Needs the matching Fondaro API release.
+
 Tag and assignee dropdowns load live from your organization. Since 1.4.0 the tag dropdowns bind stable tag **IDs** (shown by name), so a picked tag keeps working after it is renamed or merged in the dashboard; workflows saved with older versions hold names, which the API still accepts. In the `tags` field, a plain name that does not exist is created automatically, while a UUID-shaped entry must match an existing tag and is never created. The status and stage dropdowns are fixed lists, kept in sync with Fondaro:
 
 - CRM status: `lead`, `potential`, `bad_timing`, `client`, `unqualified`

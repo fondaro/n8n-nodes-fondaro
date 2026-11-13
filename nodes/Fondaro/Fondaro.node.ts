@@ -613,13 +613,16 @@ export class Fondaro implements INodeType {
 				},
 			},
 			{
-				displayName: 'Listing Source',
+				displayName: 'Listing Source Name or ID',
 				name: 'listingSource',
-				type: 'string',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getListingSources',
+				},
 				required: true,
 				default: '',
-				placeholder: 'e.g. resales_online',
-				description: 'Exact connected property source identifier; URLs are not accepted',
+				description:
+					'The property source the listing comes from; URLs are not accepted. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: {
 					show: { resource: ['lead'], operation: ['matchToListing'], listingIdentity: ['source'] },
 				},
@@ -863,13 +866,14 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
-						displayName: 'Language',
+						displayName: 'Language Name or ID',
 						name: 'language',
-						type: 'string',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getLanguages',
+						},
 						default: '',
-						placeholder: 'e.g. en-GB or es-ES',
-						description:
-							'Preferred language of the lead as a BCP-47 tag (e.g. en-GB, es-ES, sv-SE). Casing is normalised automatically; values that are not valid language tags are rejected.',
+						description: 'Preferred language of the lead. Your leads\' languages are listed first. Pick one, or map your own BCP-47 tag with an <a href="https://docs.n8n.io/code/expressions/">expression</a>; casing is normalised and invalid tags are rejected. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 						routing: {
 							send: {
 								type: 'body',
@@ -952,6 +956,23 @@ export class Fondaro implements INodeType {
 							send: {
 								type: 'body',
 								property: 'tags',
+							},
+						},
+					},
+					{
+						displayName: 'Team Names or IDs',
+						name: 'teamIds',
+						type: 'multiOptions',
+						typeOptions: {
+							loadOptionsMethod: 'getTeams',
+						},
+						default: [],
+						description:
+							'Teams whose members are all added as assignees of the lead. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'teamIds',
 							},
 						},
 					},
@@ -1081,7 +1102,6 @@ export class Fondaro implements INodeType {
 				typeOptions: {
 					loadOptionsMethod: 'getAssignees',
 				},
-				required: true,
 				default: [],
 				displayOptions: {
 					show: {
@@ -1090,11 +1110,34 @@ export class Fondaro implements INodeType {
 					},
 				},
 				description:
-					'Users to add to the lead. Existing assignees are preserved. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+					'Users to add to the lead. Add users, teams or both. Existing assignees are preserved. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				routing: {
 					send: {
 						type: 'body',
 						property: 'userIds',
+					},
+				},
+			},
+			{
+				displayName: 'Team Names or IDs',
+				name: 'teamIds',
+				type: 'multiOptions',
+				typeOptions: {
+					loadOptionsMethod: 'getTeams',
+				},
+				default: [],
+				displayOptions: {
+					show: {
+						resource: ['lead'],
+						operation: ['addAssignees'],
+					},
+				},
+				description:
+					'Teams whose members are all added as assignees. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+				routing: {
+					send: {
+						type: 'body',
+						property: 'teamIds',
 					},
 				},
 			},
@@ -1211,6 +1254,36 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
+						displayName: 'Language Name or ID',
+						name: 'language',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getLanguages',
+						},
+						default: '',
+						description: 'Return only leads with this language. Your leads\' languages are listed first. Pick one, or map your own BCP-47 tag with an <a href="https://docs.n8n.io/code/expressions/">expression</a>; casing is normalised and invalid tags are rejected. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'language',
+							},
+						},
+					},
+					{
+						displayName: 'Lead Type',
+						name: 'leadType',
+						type: 'options',
+						options: LEAD_TYPE_OPTIONS,
+						default: 'buyer',
+						description: 'Return only leads of this type',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'leadType',
+							},
+						},
+					},
+					{
 						displayName: 'Limit',
 						name: 'limit',
 						type: 'number',
@@ -1240,6 +1313,23 @@ export class Fondaro implements INodeType {
 							send: {
 								type: 'query',
 								property: 'offset',
+							},
+						},
+					},
+					{
+						displayName: 'Source Name or ID',
+						name: 'source',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getLeadSources',
+						},
+						default: '',
+						description:
+							'Return only leads from this source. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'query',
+								property: 'source',
 							},
 						},
 					},
@@ -1387,6 +1477,19 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
+						displayName: 'External ID',
+						name: 'externalId',
+						type: 'string',
+						default: '',
+						description: 'Your own ID for this lead, so Find can look it up later. Leave unset to keep it; an empty value clears it.',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'externalId',
+							},
+						},
+					},
+					{
 						displayName: 'First Name',
 						name: 'firstName',
 						type: 'string',
@@ -1400,13 +1503,14 @@ export class Fondaro implements INodeType {
 						},
 					},
 					{
-						displayName: 'Language',
+						displayName: 'Language Name or ID',
 						name: 'language',
-						type: 'string',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getLanguages',
+						},
 						default: '',
-						placeholder: 'e.g. en',
-						description:
-							'New preferred language of the lead as a BCP-47 tag (e.g. en-GB, es-ES). Casing is normalised automatically; invalid tags are rejected.',
+						description: 'New preferred language of the lead. Your leads\' languages are listed first. Pick one, or map your own BCP-47 tag with an <a href="https://docs.n8n.io/code/expressions/">expression</a>; casing is normalised and invalid tags are rejected. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 						routing: {
 							send: {
 								type: 'body',
@@ -1454,6 +1558,23 @@ export class Fondaro implements INodeType {
 							send: {
 								type: 'body',
 								property: 'phoneNumber',
+							},
+						},
+					},
+					{
+						displayName: 'Source Name or ID',
+						name: 'source',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getLeadSources',
+						},
+						default: '',
+						description:
+							'Where the lead originated. Leave unset to keep it. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'source',
 							},
 						},
 					},
@@ -1645,6 +1766,23 @@ export class Fondaro implements INodeType {
 							},
 						},
 					},
+					{
+						displayName: 'Team Names or IDs',
+						name: 'teamIds',
+						type: 'multiOptions',
+						typeOptions: {
+							loadOptionsMethod: 'getTeams',
+						},
+						default: [],
+						description:
+							'Teams whose members are all added as assignees of the deal. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'teamIds',
+							},
+						},
+					},
 				],
 			},
 			{
@@ -1829,6 +1967,23 @@ export class Fondaro implements INodeType {
 							},
 						},
 					},
+					{
+						displayName: 'Team Names or IDs',
+						name: 'teamIds',
+						type: 'multiOptions',
+						typeOptions: {
+							loadOptionsMethod: 'getTeams',
+						},
+						default: [],
+						description:
+							'Teams whose members are all added as assignees of the task. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						routing: {
+							send: {
+								type: 'body',
+								property: 'teamIds',
+							},
+						},
+					},
 				],
 			},
 			{
@@ -1859,6 +2014,15 @@ export class Fondaro implements INodeType {
 			},
 			async getLeadSources(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/lead-sources');
+			},
+			async getTeams(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/teams');
+			},
+			async getLanguages(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/languages');
+			},
+			async getListingSources(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return await fondaroOptionsRequest.call(this, '/integrations/v1/options/listing-sources');
 			},
 		},
 	};
